@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="MEVA — painel de controle para GitHub Actions.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>MEVA — Painel</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <div class="brand-mark">M</div>
+      <div>
+        <div class="brand-name">MEVA</div>
+        <div class="brand-subtitle">Painel de controle · GitHub Actions</div>
+      </div>
+    </header>
+
+    <section id="tokenPanel" class="panel">
+      <span class="eyebrow">CONEXÃO</span>
+      <h1>Conectar ao GitHub</h1>
+      <p class="muted">
+        Use um Fine-grained Personal Access Token limitado a este
+        repositório, com Actions: Read and write. O token fica apenas
+        nesta sessão do navegador e é enviado à API oficial do GitHub
+        para autenticar as operações.
+      </p>
+      <form id="tokenForm" class="form-stack">
+        <label for="tokenInput">Token do GitHub</label>
+        <input
+          id="tokenInput"
+          type="password"
+          autocomplete="off"
+          placeholder="github_pat_..."
+          required
+        >
+        <button class="primary" type="submit">Conectar</button>
+        <p id="tokenMessage" class="form-message" role="status"></p>
+      </form>
+    </section>
+
+    <section id="appPanel" class="panel hidden">
+      <span class="eyebrow">PAINEL PRINCIPAL</span>
+      <h1>Nova tarefa</h1>
+
+      <p class="muted">
+        O painel envia a solicitação ao workflow MEVA-INSTALADOR.yml.
+        O núcleo de inteligência artificial ainda precisa ser integrado
+        para executar alterações reais no código.
+      </p>
+
+      <form id="taskForm" class="form-stack">
+        <label for="taskInput">O que deve ser feito?</label>
+        <textarea
+          id="taskInput"
+          rows="5"
+          placeholder="Ex.: analise o projeto, encontre erros e proponha correções."
+          required
+        ></textarea>
+
+        <label for="branchInput">Branch</label>
+        <input id="branchInput" placeholder="Vazia = branch padrão">
+
+        <label for="stepsInput">Limite de operações</label>
+        <input
+          id="stepsInput"
+          type="number"
+          min="8"
+          max="20"
+          step="1"
+          value="14"
+          required
+        >
+
+        <button class="primary" id="runBtn" type="submit">
+          Enviar tarefa
+        </button>
+        <p id="taskMessage" class="form-message" role="status"></p>
+      </form>
+
+      <div class="section-heading">
+        <h2>Execuções recentes</h2>
+        <button id="refreshBtn" class="secondary" type="button">
+          Atualizar
+        </button>
+      </div>
+
+      <div id="jobsList" class="jobs"></div>
+
+      <button id="logoutBtn" class="link-button" type="button">
+        Desconectar este dispositivo
+      </button>
+    </section>
+
+    <footer>
+      MEVA · Execução sob demanda
+    </footer>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
