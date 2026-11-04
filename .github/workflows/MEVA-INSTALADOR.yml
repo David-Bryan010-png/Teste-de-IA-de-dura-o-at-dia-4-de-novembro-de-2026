@@ -990,7 +990,6 @@ jobs:
                     if __name__ == "__main__":
                         main()
                     PY
-                    # Corrige automaticamente a indentação do script Python usando textwrap.dedent
                     python3 -c '
                     import textwrap
                     p = "'"$RUNNER_TEMP/meva_agent.py"'"
