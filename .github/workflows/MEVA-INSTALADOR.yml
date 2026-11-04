@@ -731,10 +731,8 @@ jobs:
           if [[ ! -s "$MODEL" ]] || (( $(stat -c%s "$MODEL") < 1900000000 )); then
             rm -f "$MODEL"
             echo "Baixando Qwen2.5-Coder-3B-Instruct Q4_K_M (aprox. 2,1 GB)..."
-            curl --fail --location --retry 8 --retry-all-errors \\
-              --connect-timeout 30 --retry-delay 5 \\
-              "https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}?download=true" \\
-              --output "$MODEL"
+            MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}?download=true"
+            curl --fail --location --retry 8 --retry-all-errors --connect-timeout 30 --retry-delay 5 --output "$MODEL" "$MODEL_URL"
           else
             echo "Modelo já encontrado no cache."
           fi
@@ -745,6 +743,16 @@ jobs:
             rm -f "$MODEL"
             exit 1
           fi
+
+          python - "$MODEL" <<'PY'
+          import pathlib, sys
+          model = pathlib.Path(sys.argv[1])
+          with model.open("rb") as stream:
+              magic = stream.read(4)
+          if magic != b"GGUF":
+              raise SystemExit(f"Arquivo baixado não é GGUF (cabeçalho={magic!r}).")
+          print(f"Cabeçalho GGUF confirmado: {model.name}")
+          PY
 
           echo "Qwen GGUF validado: $SIZE bytes."
           {
@@ -1439,7 +1447,7 @@ jobs:
                   if isinstance(item, dict) and item.get('role') == 'assistant' and isinstance(item.get('content'), str):
                       item['content'] += '\n\nArquivos processados disponíveis nesta GitHub Release:\n' + url
                       break
-              history_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')
+              history_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           print('Release de resultado:', url)
           PY
           if [[ -n "$SOURCE_TAG" ]]; then
