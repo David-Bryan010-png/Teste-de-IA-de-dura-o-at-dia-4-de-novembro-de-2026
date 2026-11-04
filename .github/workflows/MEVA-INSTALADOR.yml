@@ -1,9 +1,3 @@
-# MEVA — INSTALADOR ÚNICO (GitHub Pages)
-# Coloque este arquivo em: .github/workflows/MEVA-INSTALADOR.yml
-# Execute o workflow. Ele cria todos os arquivos, faz o commit e deixa o Pages pronto.
-# Depois: Settings → Pages → Source: GitHub Actions (se ainda não estiver).
-# Crie um Fine-grained PAT com Actions: Read and write e cole no painel.
-
 name: MEVA — instalação completa (GitHub Pages)
 run-name: MEVA Pages — ${{ github.repository }}
 
@@ -116,7 +110,6 @@ jobs:
             : "";
           
           function repoFull() {
-            // When served from https://owner.github.io/repo/ we can infer owner from hostname
             const host = location.hostname;
             if (host.endsWith(".github.io")) {
               const owner = host.replace(".github.io", "");
@@ -499,7 +492,6 @@ jobs:
             issue_comment:
               types: [created]
           
-          # O token não é persistido pelo checkout. Ele só é exposto no passo final de commit.
           permissions:
             contents: write
             issues: write
@@ -535,7 +527,7 @@ jobs:
           
               steps:
                 - name: Checkout repository
-                  uses: actions/checkout@v7
+                  uses: actions/checkout@v4
                   with:
                     ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch != '' && inputs.branch || github.event.repository.default_branch }}
                     fetch-depth: 0
@@ -571,7 +563,7 @@ jobs:
                     } >> "$GITHUB_STEP_SUMMARY"
           
                 - name: Restore local model and llama.cpp cache
-                  uses: actions/cache@v5
+                  uses: actions/cache@v4
                   with:
                     path: ${{ runner.temp }}/meva-cache
                     key: meva-qwen35-4b-llamacpp-v1-${{ runner.os }}-${{ hashFiles('.github/workflows/meva-agent.yml') }}
@@ -670,7 +662,7 @@ jobs:
                     import urllib.error
                     import urllib.request
                     from pathlib import Path
-          
+
                     ROOT = Path.cwd().resolve()
                     REPORT = Path(os.environ["REPORT_DIR"])
                     API = "http://127.0.0.1:8080/v1/chat/completions"
@@ -680,11 +672,11 @@ jobs:
                     MAX_WRITE = 24000
                     EXCLUDED = {".git", "node_modules", ".venv", "venv", "__pycache__", ".next", "dist", "target", "build", "vendor"}
                     ALLOWED = {"python", "python3", "pytest", "bash", "sh", "node", "npm", "npx", "cmake", "ctest", "make", "ninja", "cargo", "rustc", "gcc", "g++", "clang", "clang++", "git"}
-          
+
                     SYSTEM = r"""Você é MEVA, um agente de engenharia de software que trabalha DENTRO do repositório fornecido.
                     Sua tarefa é entender o projeto, modificar os arquivos necessários, testar e corrigir o que conseguir.
                     Você NÃO é apenas um assistente que sugere código: use as ferramentas para realmente alterar os arquivos.
-          
+
                     Responda SEMPRE com exatamente um objeto JSON válido, sem Markdown, sem texto antes/depois e sem blocos ```.
                     Ações disponíveis:
                     {"action":"list_files"}
@@ -696,7 +688,7 @@ jobs:
                     {"action":"delete_file","path":"caminho/relativo"}
                     {"action":"run_command","command":"comando de teste/build em uma única chamada, sem shell"}
                     {"action":"finish","summary":"resumo objetivo do que foi feito, testes e pendências"}
-          
+
                     Regras obrigatórias:
                     1. Comece inspecionando a estrutura e os arquivos relevantes; não invente arquitetura nem arquivos existentes.
                     2. Leia antes de editar. Faça alterações reais e completas, não apenas trechos ou pseudocódigo.
@@ -711,7 +703,7 @@ jobs:
                     11. Use caminhos relativos. Ao criar um arquivo, forneça o conteúdo integral.
                     12. Trabalhe na tarefa do usuário, não reescreva partes sem relação com ela.
                     """
-          
+
                     def safe_path(raw):
                         if not isinstance(raw, str) or not raw.strip():
                             raise ValueError("Caminho vazio ou inválido")
@@ -721,7 +713,7 @@ jobs:
                         if ".git" in candidate.parts:
                             raise ValueError("Acesso a .git bloqueado")
                         return candidate
-          
+
                     def walk_files():
                         out = []
                         for base, dirs, files in os.walk(ROOT):
@@ -738,13 +730,13 @@ jobs:
                                 if len(out) >= 250:
                                     return out
                         return out
-          
+
                     def _tool(action):
                         name = action.get("action")
                         if name == "list_files":
                             files = walk_files()
                             return {"ok": True, "files": files, "count": len(files), "note": "Lista limitada a 350 arquivos; diretórios de dependências/build foram omitidos."}
-          
+
                         if name == "search_files":
                             query = str(action.get("query", ""))[:300]
                             if not query:
@@ -768,7 +760,7 @@ jobs:
                                 except (OSError, UnicodeError):
                                     continue
                             return {"ok": True, "matches": hits, "truncated": False}
-          
+
                         if name == "read_file":
                             p = safe_path(action.get("path"))
                             if not p.is_file() or p.is_symlink() or p.stat().st_size > 5_000_000:
@@ -785,7 +777,7 @@ jobs:
                             return {"ok": True, "path": p.relative_to(ROOT).as_posix(), "content": excerpt,
                                     "start_line": start_line, "next_line": next_line,
                                     "truncated": len(selected) > MAX_READ, "total_lines": len(lines), "characters": len(text)}
-          
+
                         if name == "write_file":
                             p = safe_path(action.get("path"))
                             content = action.get("content")
@@ -798,7 +790,7 @@ jobs:
                             p.parent.mkdir(parents=True, exist_ok=True)
                             p.write_text(content, encoding="utf-8", newline="")
                             return {"ok": True, "path": p.relative_to(ROOT).as_posix(), "characters_written": len(content)}
-          
+
                         if name == "replace_in_file":
                             p = safe_path(action.get("path"))
                             old = action.get("find")
@@ -816,7 +808,7 @@ jobs:
                                 return {"ok": False, "error": f"Esperava {expected} ocorrência(s), encontrei {count}; nada foi alterado"}
                             p.write_text(original.replace(old, new), encoding="utf-8", newline="")
                             return {"ok": True, "path": p.relative_to(ROOT).as_posix(), "replacements": count}
-          
+
                         if name == "append_file":
                             p = safe_path(action.get("path"))
                             content = action.get("content")
@@ -828,14 +820,14 @@ jobs:
                             with p.open("a", encoding="utf-8", newline="") as stream:
                                 stream.write(content)
                             return {"ok": True, "path": p.relative_to(ROOT).as_posix(), "characters_appended": len(content)}
-          
+
                         if name == "delete_file":
                             p = safe_path(action.get("path"))
                             if not p.is_file() or p.is_symlink():
                                 return {"ok": False, "error": "Só é permitido excluir um arquivo regular existente"}
                             p.unlink()
                             return {"ok": True, "deleted": p.relative_to(ROOT).as_posix()}
-          
+
                         if name == "run_command":
                             command = action.get("command", "")
                             if not isinstance(command, str) or len(command) > 1000:
@@ -882,18 +874,18 @@ jobs:
                                 return {"ok": False, "error": "Comando excedeu 240 segundos", "output": data[-8000:]}
                             except Exception as exc:
                                 return {"ok": False, "error": str(exc)}
-          
+
                         if name == "finish":
                             return {"finished": True, "summary": str(action.get("summary", "Tarefa encerrada."))[:6000]}
-          
+
                         return {"ok": False, "error": f"Ação desconhecida: {name}"}
-          
+
                     def tool(action):
                         try:
                             return _tool(action)
                         except Exception as exc:
                             return {"ok": False, "error": f"Operação bloqueada ou falhou: {exc}"}
-          
+
                     def parse_json(content):
                         if not isinstance(content, str):
                             raise ValueError("Resposta do modelo sem texto")
@@ -931,7 +923,7 @@ jobs:
                                                 return obj
                                             break
                         raise ValueError("O modelo não retornou JSON válido")
-          
+
                     def ask(messages):
                         payload = {
                             "model": "meva-local",
@@ -951,7 +943,7 @@ jobs:
                         except urllib.error.HTTPError as exc:
                             detail = exc.read().decode("utf-8", errors="replace")[:3000]
                             raise RuntimeError(f"Erro HTTP do servidor local: {exc.code}: {detail}") from exc
-          
+
                     def main():
                         global TASK
                         task_file = Path(os.environ.get("MEVA_TASK_FILE", ""))
@@ -986,7 +978,7 @@ jobs:
                             messages.append({"role": "user", "content": "RESULTADO DA FERRAMENTA:\n" + rendered + "\nEscolha a próxima ação. Continue trabalhando na tarefa e teste as mudanças antes de finalizar."})
                         else:
                             summary = "Limite de operações atingido. As alterações realizadas foram preservadas; revise o relatório e execute uma nova tarefa para continuar."
-          
+
                         (REPORT / "summary.md").write_text("# Relatório MEVA\n\n" + summary + "\n", encoding="utf-8")
                         (REPORT / "agent.log").write_text("\n\n".join(log), encoding="utf-8")
                         diff = subprocess.run(["git", "diff", "--", "."], cwd=ROOT, text=True,
@@ -994,12 +986,16 @@ jobs:
                         (REPORT / "working-tree.diff").write_text(diff[-500000:], encoding="utf-8")
                         print("\n===== RESUMO MEVA =====\n" + summary, flush=True)
                         print("Resumo salvo em " + str(REPORT / "summary.md"), flush=True)
-          
+
                     if __name__ == "__main__":
                         main()
                     PY
-                    # Remove YAML indent so the Python file is valid
-                    sed -i 's/^          //' "$RUNNER_TEMP/meva_agent.py"
+                    # Corrige automaticamente a indentação do script Python usando textwrap.dedent
+                    python3 -c '
+                    import textwrap
+                    p = "'"$RUNNER_TEMP/meva_agent.py"'"
+                    open(p, "w").write(textwrap.dedent(open(p).read()))
+                    '
                     python3 "$RUNNER_TEMP/meva_agent.py" | tee "$REPORT_DIR/console.log"
                     {
                       echo
@@ -1040,7 +1036,7 @@ jobs:
           
                 - name: Upload MEVA report
                   if: always()
-                  uses: actions/upload-artifact@v7
+                  uses: actions/upload-artifact@v4
                   with:
                     name: meva-report-${{ github.run_number }}
                     path: ${{ runner.temp }}/meva-report/
@@ -1049,7 +1045,7 @@ jobs:
           
                 - name: Reply to the Issue comment
                   if: always() && (github.event_name == 'issues' || github.event_name == 'issue_comment')
-                  uses: actions/github-script@v9
+                  uses: actions/github-script@v7
                   with:
                     github-token: ${{ secrets.GITHUB_TOKEN }}
                     script: |
@@ -1115,215 +1111,19 @@ jobs:
           cat > /tmp/icon192.b64 <<'B64'
           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
-          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
-          SUVORK5CYII=
+          7xKFiiAgqx+HIiqXdc7+rXXW3vv7e4GBvde5fWbvtdZvnd+KZM0pAIORbET5FjAIiEFADAJiHGcQ
+          EAeyBwK4GAKAHMjjM4EAIAfymAIgAAgAcjgIgAAAIMjnAAAgAAgAwOEQAAgAAECQAwEAAAIAgAAA
+          IIADAAEAANh/AHx4L8UOM4j8AAAAAElFTkSuQmCC
           B64
 
           cat > /tmp/icon512.b64 <<'B64'
-          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
+          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
           B64
 
-          # Remove the 10-space YAML indent that was added to every line of the heredocs
-          find public .github LEIA-PRIMEIRO.md package.json .gitignore -type f -exec sed -i 's/^          //' {} +
-          # Decode icons after stripping indent from their b64
           sed 's/^[[:space:]]*//' /tmp/icon192.b64 | base64 -d > public/icon-192.png
           sed 's/^[[:space:]]*//' /tmp/icon512.b64 | base64 -d > public/icon-512.png
           rm -f /tmp/icon192.b64 /tmp/icon512.b64
@@ -1342,8 +1142,8 @@ jobs:
             echo "Nada novo para commitar."
           else
             git commit -m "MEVA: instalar painel no GitHub Pages"
-            git config --unset-all http.https://github.com/.extraheader || true
-            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF_NAME}
+            git config --unset-all http.[https://github.com/.extraheader](https://github.com/.extraheader) || true
+            git push "https://x-access-token:${GH_TOKEN}@[github.com/$](https://github.com/$){GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF_NAME}
             echo "Commit enviado."
           fi
 
