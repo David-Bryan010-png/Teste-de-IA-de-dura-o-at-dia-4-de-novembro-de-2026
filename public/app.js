@@ -1,46 +1,52 @@
 "use strict";
 
-const TOKEN_KEY = "meva_github_token";
-const REPO_KEY = "meva_repository";
-const CONVERSATION_KEY = "meva_conversation_id";
-const WORKFLOW = "MEVA-INSTALADOR.yml";
 const $ = (id) => document.getElementById(id);
-let repository = "";
+const TOKEN_KEY = "meva_pat_session";
+const REPO_KEY = "meva_repo";
+const CHAT_KEY = "meva_chat_id";
+const WORKFLOW = "MEVA-INSTALADOR.yml";
+const MAX_WAIT_MS = 48 * 60 * 1000;
+let repo = "";
+let owner = "";
+let repoName = "";
 let defaultBranch = "main";
-let conversationId = "";
+let chatId = "";
+let chatMessages = [];
 let busy = false;
-let messages = [];
 
-function repoFromLocation() {
-  const saved = sessionStorage.getItem(REPO_KEY);
-  if (saved && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(saved)) return saved;
+function repoFromPage() {
+  const cached = sessionStorage.getItem(REPO_KEY);
+  if (cached && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cached)) return cached;
   const host = location.hostname;
-  if (host.endsWith(".github.io")) {
-    const owner = host.slice(0, -".github.io".length);
-    const first = location.pathname.split("/").filter(Boolean)[0];
-    const repo = first || `${owner}.github.io`;
-    const value = `${owner}/${repo}`;
-    sessionStorage.setItem(REPO_KEY, value);
-    return value;
-  }
-  return "";
+  if (!host.endsWith(".github.io")) return "";
+  const user = host.slice(0, -".github.io".length);
+  const firstPath = location.pathname.split("/").filter(Boolean)[0];
+  const project = firstPath || `${user}.github.io`;
+  const found = `${user}/${project}`;
+  sessionStorage.setItem(REPO_KEY, found);
+  return found;
 }
 
-function repoParts() {
-  const parts = repository.split("/");
-  if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("Repositório não identificado.");
-  return parts;
+function parts() {
+  if (!owner || !repoName) throw new Error("Repositório não identificado.");
+  return [owner, repoName];
 }
 
-function setNotice(id, text, kind = "") {
-  const el = $(id);
+function status(text, kind = "") {
+  const el = $("taskStatus");
   el.textContent = text;
-  el.className = `notice ${kind}`.trim();
+  el.className = `task-status ${kind}`.trim();
 }
 
-async function api(path, options = {}) {
+function loginStatus(text, kind = "") {
+  const el = $("loginStatus");
+  el.textContent = text;
+  el.className = `status-text ${kind}`.trim();
+}
+
+async function github(path, options = {}) {
   const token = sessionStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Conecte seu token do GitHub.");
+  if (!token) throw new Error("Sessão desconectada. Conecte novamente.");
   const headers = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${token}`,
@@ -59,162 +65,210 @@ async function api(path, options = {}) {
   return raw ? JSON.parse(raw) : null;
 }
 
-function renderMessages() {
-  const area = $("messages");
-  area.replaceChildren();
-  if (!messages.length) {
-    const empty = document.createElement("div");
-    empty.className = "welcome";
-    const mark = document.createElement("div"); mark.className = "welcome-symbol"; mark.textContent = "M";
-    const title = document.createElement("h2"); title.textContent = "MEVA pronta para conversar";
-    const desc = document.createElement("p"); desc.textContent = "Envie uma mensagem para começar.";
-    empty.append(mark, title, desc); area.appendChild(empty); return;
+function render() {
+  const root = $("messages");
+  root.replaceChildren();
+  if (!chatMessages.length) {
+    const box = document.createElement("div"); box.className = "welcome";
+    const icon = document.createElement("div"); icon.className = "welcome-icon"; icon.textContent = "M";
+    const title = document.createElement("h2"); title.textContent = "Como posso ajudar?";
+    const description = document.createElement("p"); description.textContent = "A conversa começa quando você enviar a primeira mensagem.";
+    box.append(icon, title, description); root.appendChild(box); return;
   }
-  for (const item of messages) {
-    const wrap = document.createElement("article");
-    wrap.className = `message ${item.role === "user" ? "user-message" : "assistant-message"}`;
-    const who = document.createElement("div"); who.className = "message-role";
-    who.textContent = item.role === "user" ? "VOCÊ" : "MEVA";
-    const body = document.createElement("div"); body.className = "message-body";
-    body.textContent = String(item.content || "");
-    wrap.append(who, body); area.appendChild(wrap);
+  for (const item of chatMessages) {
+    const article = document.createElement("article");
+    article.className = `bubble ${item.role === "user" ? "from-user" : "from-meva"}`;
+    const role = document.createElement("div"); role.className = "bubble-role";
+    role.textContent = item.role === "user" ? "VOCÊ" : "MEVA";
+    const content = document.createElement("div"); content.className = "bubble-content";
+    content.textContent = String(item.content || "");
+    article.append(role, content); root.appendChild(article);
   }
-  area.scrollTop = area.scrollHeight;
+  root.scrollTop = root.scrollHeight;
 }
 
+function validChatId(value) { return /^[A-Za-z0-9_-]{8,80}$/.test(value); }
 function newConversation() {
-  conversationId = crypto.randomUUID();
-  localStorage.setItem(CONVERSATION_KEY, conversationId);
-  messages = [];
-  renderMessages();
-  setNotice("taskStatus", `Nova conversa criada: ${conversationId}`);
+  chatId = crypto.randomUUID();
+  localStorage.setItem(CHAT_KEY, chatId);
+  const url = new URL(location.href);
+  url.searchParams.set("conversation", chatId);
+  history.replaceState({}, "", url);
+  chatMessages = [];
+  render();
+  status("Nova conversa criada. Envie uma mensagem para começar.");
+}
+
+async function loadConversationList() {
+  const [o, r] = parts();
+  const branch = $("branch").value.trim() || defaultBranch;
+  const select = $("savedChats");
+  const current = chatId;
+  const data = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/contents/meva-data/conversations?ref=${encodeURIComponent(branch)}`);
+  select.replaceChildren();
+  const first = document.createElement("option"); first.value = ""; first.textContent = "Selecione uma conversa…"; select.appendChild(first);
+  const files = Array.isArray(data) ? data.filter(x => x.type === "file" && /^[-A-Za-z0-9_]{8,80}\.json$/.test(x.name)).slice(0, 100) : [];
+  for (const file of files) {
+    const option = document.createElement("option");
+    option.value = file.name.slice(0, -5);
+    option.textContent = file.name.slice(0, -5);
+    select.appendChild(option);
+  }
+  select.value = current;
+}
+
+function decodeBase64Utf8(value) {
+  const binary = atob(String(value || "").replace(/\s/g, ""));
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 async function loadConversation() {
-  if (!conversationId) return;
-  const [owner, repo] = repoParts();
-  const branch = $("branchInput").value.trim() || defaultBranch;
-  const url = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/meva-data/conversations/${conversationId}.json?t=${Date.now()}`;
-  const response = await fetch(url, { cache: "no-store" });
-  if (response.status === 404) { messages = []; renderMessages(); return; }
-  if (!response.ok) throw new Error(`Não foi possível ler o histórico (${response.status}).`);
-  const data = await response.json();
-  messages = Array.isArray(data.messages) ? data.messages : [];
-  renderMessages();
+  if (!validChatId(chatId)) { chatMessages = []; render(); return; }
+  const [o, r] = parts();
+  const branch = $("branch").value.trim() || defaultBranch;
+  const path = `meva-data/conversations/${chatId}.json`;
+  let data;
+  try {
+    data = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/contents/${path}?ref=${encodeURIComponent(branch)}`);
+  } catch (error) {
+    if (String(error.message).startsWith("404:")) {
+      chatMessages = [];
+      render();
+      return;
+    }
+    throw error;
+  }
+  const parsed = JSON.parse(decodeBase64Utf8(data.content));
+  chatMessages = Array.isArray(parsed.messages) ? parsed.messages.filter(x => x && ["user", "assistant"].includes(x.role) && typeof x.content === "string") : [];
+  render();
+  await loadConversationList().catch(() => {});
 }
 
 async function connect() {
-  const [owner, repo] = repoParts();
-  const data = await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
-  defaultBranch = data.default_branch || "main";
-  repository = data.full_name;
-  $("repoLabel").textContent = `${repository} · branch padrão: ${defaultBranch}`;
-  $("branchInput").value = new URLSearchParams(location.search).get("branch") || defaultBranch;
-  conversationId = localStorage.getItem(CONVERSATION_KEY) || "";
-  const sharedId = new URLSearchParams(location.search).get("conversation");
-  if (sharedId && /^[A-Za-z0-9_-]{8,80}$/.test(sharedId)) conversationId = sharedId;
-  if (!conversationId) newConversation(); else localStorage.setItem(CONVERSATION_KEY, conversationId);
-  $("connectionState").textContent = "CONECTADA";
-  $("connectionState").classList.add("online");
-  $("loginPanel").classList.add("hidden");
-  $("chatPanel").classList.remove("hidden");
-  await loadConversation();
+  const [o, r] = parts();
+  const info = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}`);
+  defaultBranch = info.default_branch || "main";
+  repo = info.full_name;
+  owner = info.owner.login;
+  repoName = info.name;
+  $("repoInfo").textContent = `${repo} · branch padrão: ${defaultBranch}`;
+  const query = new URLSearchParams(location.search);
+  const shared = query.get("conversation");
+  chatId = validChatId(shared) ? shared : (localStorage.getItem(CHAT_KEY) || "");
+  if (!validChatId(chatId)) newConversation(); else localStorage.setItem(CHAT_KEY, chatId);
+  $("branch").value = query.get("branch") || defaultBranch;
+  $("actionsLink").href = `https://github.com/${owner}/${repo}/actions/workflows/${WORKFLOW}`;
+  $("connection").textContent = "CONECTADA";
+  $("connection").classList.add("online");
+  $("login").classList.add("hidden");
+  $("workspace").classList.remove("hidden");
+  await loadConversation().catch(error => status(`Histórico ainda não disponível: ${error.message}`));
+  await loadConversationList().catch(() => {});
 }
 
-$("tokenForm").addEventListener("submit", async (event) => {
+$("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.submitter;
-  const token = $("tokenInput").value.trim();
+  const token = $("token").value.trim();
   if (!token) return;
-  button.disabled = true; button.textContent = "Verificando...";
+  button.disabled = true; button.textContent = "Verificando…";
   sessionStorage.setItem(TOKEN_KEY, token);
-  try { await connect(); $("tokenInput").value = ""; }
-  catch (error) { sessionStorage.removeItem(TOKEN_KEY); setNotice("loginMessage", `Falha: ${error.message}`, "error"); }
+  try { await connect(); $("token").value = ""; }
+  catch (error) { sessionStorage.removeItem(TOKEN_KEY); loginStatus(`Falha na conexão: ${error.message}`, "error"); }
   finally { button.disabled = false; button.textContent = "Conectar"; }
 });
 
-async function recentRuns() {
-  const [owner, repo] = repoParts();
-  const data = await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${encodeURIComponent(WORKFLOW)}/runs?event=workflow_dispatch&per_page=30`);
-  return data.workflow_runs || [];
+async function getRuns() {
+  const [o, r] = parts();
+  const result = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/actions/workflows/${encodeURIComponent(WORKFLOW)}/runs?event=workflow_dispatch&per_page=50`);
+  return result.workflow_runs || [];
 }
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-async function waitForRun(beforeIds, branch, startedAt) {
-  const [owner, repo] = repoParts();
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function waitForCurrentRun(previousIds, startedAt) {
+  const [o, r] = parts();
+  const end = Date.now() + MAX_WAIT_MS;
   let run = null;
-  const deadline = Date.now() + 50 * 60 * 1000;
-  while (Date.now() < deadline) {
-    const runs = await recentRuns();
-    run = runs.find(item => !beforeIds.has(item.id) && item.head_branch === branch && Date.parse(item.created_at) >= startedAt - 15000 && String(item.display_title || "").includes(conversationId));
-    if (!run) run = runs.find(item => !beforeIds.has(item.id) && item.head_branch === branch && Date.parse(item.created_at) >= startedAt - 15000);
+  while (Date.now() < end) {
+    const runs = await getRuns();
+    const targetBranch = $("branch").value.trim() || defaultBranch;
+    run = runs.find(item => !previousIds.has(item.id) && item.head_branch === targetBranch && Date.parse(item.created_at) >= startedAt - 20000 && String(item.display_title || "").includes(chatId));
     if (run) {
-      const current = await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${run.id}`);
-      setNotice("taskStatus", `MEVA está trabalhando · execução #${run.run_number} · ${current.status}${current.status === "completed" ? ` (${current.conclusion})` : ""}`);
-      if (current.status === "completed") {
-        if (current.conclusion !== "success") throw new Error(`A execução terminou com estado: ${current.conclusion}. Abra a execução #${run.run_number} no GitHub para ver o log.`);
-        return;
+      const detail = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/actions/runs/${run.id}`);
+      status(`MEVA está trabalhando · execução #${run.run_number} · ${detail.status}${detail.status === "completed" ? ` / ${detail.conclusion}` : ""}`);
+      if (detail.status === "completed") {
+        if (detail.conclusion !== "success") throw new Error(`Execução #${run.run_number} terminou com ${detail.conclusion}. Abra os logs em GitHub → Actions.`);
+        return run;
       }
-    } else {
-      setNotice("taskStatus", "Solicitação enviada. Aguardando o GitHub iniciar a execução...");
-    }
-    await sleep(9000);
+    } else status("Solicitação enviada. Esperando o GitHub iniciar o modelo…");
+    await wait(9000);
   }
-  throw new Error("Tempo de espera do painel esgotado. A execução pode continuar no GitHub Actions.");
+  throw new Error("O painel deixou de esperar. A execução pode continuar; use Atualizar conversa ou Ver execuções.");
 }
 
-$("messageForm").addEventListener("submit", async (event) => {
+$("composer").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (busy) return;
-  const text = $("messageInput").value.trim();
+  const text = $("message").value.trim();
   if (!text) return;
-  if (text.length > 5000) return setNotice("taskStatus", "A mensagem ultrapassa 5.000 caracteres.", "error");
-  const branch = $("branchInput").value.trim() || defaultBranch;
-  const mode = $("modeSelect").value;
-  const button = $("sendBtn");
-  busy = true; button.disabled = true; button.textContent = "Executando...";
+  if (text.length > 6000) return status("A mensagem excede 6.000 caracteres.", "error");
+  const branch = $("branch").value.trim() || defaultBranch;
+  if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.includes("..")) return status("Nome de branch inválido.", "error");
+  const mode = $("mode").value;
+  const button = $("send");
+  busy = true; button.disabled = true; button.textContent = "Executando…";
   const startedAt = Date.now();
   try {
-    const before = await recentRuns();
-    const beforeIds = new Set(before.map(item => item.id));
-    $("messageInput").value = "";
-    messages.push({ role: "user", content: text }); renderMessages();
-    setNotice("taskStatus", mode === "agent" ? "Agente iniciado. Ele vai analisar os arquivos e só poderá alterar arquivos fora de .github." : "Preparando o modelo de IA no GitHub Actions...");
-    const [owner, repo] = repoParts();
-    await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${encodeURIComponent(WORKFLOW)}/dispatches`, {
+    const before = await getRuns();
+    const previousIds = new Set(before.map(run => run.id));
+    $("message").value = "";
+    chatMessages.push({ role: "user", content: text }); render();
+    status(mode === "agent" ? "Agente de programação iniciado. Ele vai inspecionar os arquivos antes de alterá-los." : "Preparando Qwen e gerando sua resposta…");
+    const [o, r] = parts();
+    await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/actions/workflows/${encodeURIComponent(WORKFLOW)}/dispatches`, {
       method: "POST",
-      body: JSON.stringify({ ref: branch, inputs: { mode, message: text, conversation_id: conversationId, branch, max_steps: "6" } })
+      body: JSON.stringify({ ref: branch, inputs: { mode, message: text, conversation_id: chatId, branch, max_actions: "8" } })
     });
-    await waitForRun(beforeIds, branch, startedAt);
+    await waitForCurrentRun(previousIds, startedAt);
     await loadConversation();
-    setNotice("Resposta recebida e histórico salvo no repositório público.", "success");
+    status("Resposta concluída. O histórico foi salvo no repositório público.", "success");
   } catch (error) {
-    setNotice(`Não foi possível concluir: ${error.message}`, "error");
-    messages.push({ role: "assistant", content: `A execução não foi concluída pelo painel. Detalhe: ${error.message}` }); renderMessages();
+    status(`Não foi possível concluir: ${error.message}`, "error");
+    await loadConversation().catch(() => {});
   } finally {
     busy = false; button.disabled = false; button.textContent = "Enviar ↗";
   }
 });
 
-$("newChatBtn").addEventListener("click", newConversation);
-$("refreshConversationBtn").addEventListener("click", async () => {
-  try { await loadConversation(); setNotice("Histórico atualizado.", "success"); }
-  catch (error) { setNotice(error.message, "error"); }
+$("newChat").addEventListener("click", async () => { newConversation(); await loadConversationList().catch(() => {}); });
+$("savedChats").addEventListener("change", async () => {
+  const selected = $("savedChats").value;
+  if (!validChatId(selected)) return;
+  chatId = selected; localStorage.setItem(CHAT_KEY, chatId);
+  const url = new URL(location.href); url.searchParams.set("conversation", chatId); history.replaceState({}, "", url);
+  try { await loadConversation(); status("Conversa aberta.", "success"); }
+  catch (error) { status(error.message, "error"); }
 });
-$("logoutBtn").addEventListener("click", () => {
-  sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(REPO_KEY); location.reload();
+$("shareChat").addEventListener("click", async () => {
+  const url = new URL(location.href); url.searchParams.set("conversation", chatId); url.searchParams.set("branch", $("branch").value.trim() || defaultBranch);
+  try { await navigator.clipboard.writeText(url.href); status("Link público da conversa copiado.", "success"); }
+  catch (_) { status(url.href); }
 });
-$("messageInput").addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("messageForm").requestSubmit(); }
+$("refresh").addEventListener("click", async () => {
+  try { await loadConversation(); status("Histórico atualizado.", "success"); }
+  catch (error) { status(`Não foi possível atualizar: ${error.message}`, "error"); }
 });
+$("logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(REPO_KEY); location.reload(); });
+$("message").addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("composer").requestSubmit(); } });
 
 async function init() {
-  repository = repoFromLocation();
-  if (!repository) { setNotice("loginMessage", "Não consegui identificar o repositório a partir do endereço do Pages.", "error"); return; }
+  const detected = repoFromPage();
+  if (!detected) { loginStatus("Não consegui identificar o repositório a partir do endereço do Pages.", "error"); return; }
+  [owner, repoName] = detected.split("/");
   if (sessionStorage.getItem(TOKEN_KEY)) {
     try { await connect(); }
-    catch (error) { sessionStorage.removeItem(TOKEN_KEY); setNotice("loginMessage", `Sessão inválida: ${error.message}`, "error"); }
+    catch (error) { sessionStorage.removeItem(TOKEN_KEY); loginStatus(`Sessão inválida: ${error.message}`, "error"); }
   }
 }
 init();
