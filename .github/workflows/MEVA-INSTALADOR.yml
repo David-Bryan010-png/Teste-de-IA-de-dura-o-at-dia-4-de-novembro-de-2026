@@ -276,20 +276,8 @@ jobs:
           .status.failure { color: var(--danger); }
           EOF
 
-      - name: Criar arquivos de suporte e workflow do agente
+      - name: Criar workflows do Agente e do Pages
         run: |
-          cat > 'public/manifest.webmanifest' << 'EOF'
-          {
-            "name": "MEVA — Agente de Programação",
-            "short_name": "MEVA",
-            "start_url": "/",
-            "display": "standalone",
-            "background_color": "#0b1220",
-            "theme_color": "#0b1220",
-            "icons": []
-          }
-          EOF
-
           cat > '.github/workflows/deploy-pages.yml' << 'EOF'
           name: Deploy MEVA to GitHub Pages
           on:
@@ -314,17 +302,64 @@ jobs:
                   uses: actions/deploy-pages@v4
           EOF
 
+          cat > '.github/workflows/meva-agent.yml' << 'EOF'
+          name: MEVA - Local AI Coding Agent
+          run-name: MEVA-${{ inputs.request_id || github.run_number }}
+          on:
+            workflow_dispatch:
+              inputs:
+                task:
+                  description: "O que a MEVA deve fazer no repositório?"
+                  required: true
+                  type: string
+                branch:
+                  description: "Branch para trabalhar"
+                  required: false
+                  type: string
+                  default: ""
+                max_steps:
+                  description: "Máximo de operações da IA (8 a 20)"
+                  required: false
+                  type: number
+                  default: 14
+                commit_changes:
+                  description: "Salvar alterações automaticamente"
+                  required: false
+                  type: boolean
+                  default: true
+                request_id:
+                  description: "ID interno"
+                  required: false
+                  type: string
+                  default: ""
+          permissions:
+            contents: write
+            issues: write
+          jobs:
+            meva:
+              runs-on: ubuntu-24.04
+              timeout-minutes: 45
+              steps:
+                - uses: actions/checkout@v4
+                  with:
+                    fetch-depth: 0
+                    persist-credentials: false
+                - name: Executar Agente
+                  run: |
+                    echo "MEVA executando tarefa: ${{ inputs.task }}"
+          EOF
+
       - name: Commit e push dos arquivos gerados
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public .github/workflows/deploy-pages.yml
+          git add public .github/workflows/
           if git diff --cached --quiet; then
             echo "Nada novo para commitar."
           else
-            git commit -m "MEVA: atualizar instalador e painel Pages"
+            git commit -m "MEVA: restaurar workflows e painel Pages"
             git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF_NAME}
             echo "Commit enviado com sucesso."
           fi
