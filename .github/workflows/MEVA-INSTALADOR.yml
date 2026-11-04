@@ -1,11 +1,12 @@
 # MEVA — INSTALADOR ÚNICO
 # Coloque este arquivo em: .github/workflows/MEVA-INSTALADOR.yml
-# Depois configure os 4 Secrets descritos abaixo e execute em Actions.
+# Execute primeiro com deploy_now=false para gerar e commitar os arquivos sem credenciais externas.
+# Para publicar na Cloudflare, configure os 4 Secrets descritos abaixo e execute novamente com deploy_now=true.
 # Este único YAML cria automaticamente os arquivos do painel móvel, autenticação,
 # banco/migrações, agente local de programação e workflow de implantação.
 #
-# Secrets obrigatórios (Settings > Secrets and variables > Actions):
-# CLOUDFLARE_API_TOKEN   (Workers Scripts:Edit + D1:Read + D1:Edit)
+# Secrets necessários somente para deploy_now=true (Settings > Secrets and variables > Actions):
+# CLOUDFLARE_API_TOKEN   (Cloudflare Workers Scripts Write + D1 Read/Edit)
 # CLOUDFLARE_ACCOUNT_ID  (ID da conta Cloudflare)
 # MEVA_GITHUB_TOKEN      (Fine-grained PAT: Actions:Read and write + Metadata:Read)
 # MEVA_BOOTSTRAP_SECRET  (chave escolhida por você; mínimo 20 caracteres)
@@ -20,10 +21,10 @@ on:
   workflow_dispatch:
     inputs:
       deploy_now:
-        description: "Criar todos os arquivos, configurar o banco e publicar o painel"
+        description: "Publicar também na Cloudflare (exige os 4 Secrets; deixe false para instalar os arquivos primeiro)"
         type: boolean
         required: true
-        default: true
+        default: false
       overwrite_existing:
         description: "Substituir arquivos MEVA existentes (faça backup se já personalizou)"
         type: boolean
@@ -61,7 +62,8 @@ jobs:
             exit 1
           fi
 
-      - name: Validar credenciais necessárias
+      - name: Validar credenciais necessárias para publicação
+        if: ${{ inputs.deploy_now }}
         shell: bash
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -70,17 +72,22 @@ jobs:
           BOOTSTRAP: ${{ secrets.MEVA_BOOTSTRAP_SECRET }}
         run: |
           set -euo pipefail
-          for name in CF_TOKEN CF_ACCOUNT GH_TOKEN BOOTSTRAP; do
-            if [[ -z "${!name}" ]]; then
-              echo "Secret obrigatório ausente: $name" >&2
-              exit 1
-            fi
-          done
-          if (( ${#BOOTSTRAP} < 20 )); then
-            echo "MEVA_BOOTSTRAP_SECRET precisa ter pelo menos 20 caracteres." >&2
+          missing=()
+          [[ -n "$CF_TOKEN" ]] || missing+=("CLOUDFLARE_API_TOKEN")
+          [[ -n "$CF_ACCOUNT" ]] || missing+=("CLOUDFLARE_ACCOUNT_ID")
+          [[ -n "$GH_TOKEN" ]] || missing+=("MEVA_GITHUB_TOKEN")
+          [[ -n "$BOOTSTRAP" ]] || missing+=("MEVA_BOOTSTRAP_SECRET")
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Secrets ausentes em Settings > Secrets and variables > Actions:\n' >&2
+            printf ' - %s\n' "${missing[@]}" >&2
+            echo 'Defina os quatro Secrets ou execute com deploy_now=false para instalar os arquivos primeiro.' >&2
             exit 1
           fi
-          echo "Credenciais presentes. Os valores não serão exibidos."
+          if (( ${#BOOTSTRAP} < 20 )); then
+            echo 'MEVA_BOOTSTRAP_SECRET precisa ter pelo menos 20 caracteres.' >&2
+            exit 1
+          fi
+          echo 'Credenciais presentes. Os valores não serão exibidos.' 
 
       - name: Preparar ferramentas
         uses: actions/setup-node@v4
@@ -760,6 +767,7 @@ jobs:
           echo "Validação concluída."
 
       - name: Criar ou reutilizar banco D1
+        if: ${{ inputs.deploy_now }}
         id: d1
         shell: bash
         env:
@@ -799,7 +807,7 @@ jobs:
         id: commit
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
