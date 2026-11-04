@@ -3,102 +3,62 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
-  <meta name="description" content="MEVA — painel de controle para GitHub Actions.">
+  <meta name="theme-color" content="#0a1020">
+  <meta name="description" content="MEVA — inteligência artificial, conversas e agente de programação.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <title>MEVA — Painel</title>
+  <title>MEVA — Inteligência Nativa</title>
 </head>
 <body>
   <main class="shell">
-    <header class="brand">
-      <div class="brand-mark">M</div>
-      <div>
-        <div class="brand-name">MEVA</div>
-        <div class="brand-subtitle">Painel de controle · GitHub Actions</div>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <div><div class="brand-title">MEVA</div><div class="brand-sub">INTELIGÊNCIA ARTIFICIAL · EXPERIMENTAL</div></div>
       </div>
+      <span id="connectionState" class="connection">DESConectada</span>
     </header>
 
-    <section id="tokenPanel" class="panel">
-      <span class="eyebrow">CONEXÃO</span>
-      <h1>Conectar ao GitHub</h1>
-      <p class="muted">
-        Use um Fine-grained Personal Access Token limitado a este
-        repositório, com Actions: Read and write. O token fica apenas
-        nesta sessão do navegador e é enviado à API oficial do GitHub
-        para autenticar as operações.
-      </p>
-      <form id="tokenForm" class="form-stack">
+    <section id="loginPanel" class="panel login-panel">
+      <div class="eyebrow">ACESSO AO GITHUB</div>
+      <h1>Conectar a MEVA</h1>
+      <p class="muted">Cada pessoa deve usar seu próprio Fine-grained Personal Access Token. Ele precisa ter <b>Actions: Read and write</b> e acesso a este repositório. Não compartilhe seu token com amigos nem o envie no chat.</p>
+      <form id="tokenForm" class="stack">
         <label for="tokenInput">Token do GitHub</label>
-        <input
-          id="tokenInput"
-          type="password"
-          autocomplete="off"
-          placeholder="github_pat_..."
-          required
-        >
+        <input id="tokenInput" type="password" autocomplete="off" placeholder="github_pat_..." required>
         <button class="primary" type="submit">Conectar</button>
-        <p id="tokenMessage" class="form-message" role="status"></p>
+        <div id="loginMessage" class="notice" role="status"></div>
       </form>
+      <p class="small warning">AVISO: este repositório é público. As mensagens, respostas e memórias salvas poderão ser lidas por qualquer pessoa. Não escreva senhas, endereços, dados pessoais ou informações privadas.</p>
     </section>
 
-    <section id="appPanel" class="panel hidden">
-      <span class="eyebrow">PAINEL PRINCIPAL</span>
-      <h1>Nova tarefa</h1>
-
-      <p class="muted">
-        O painel envia a solicitação ao workflow MEVA-INSTALADOR.yml.
-        O núcleo de inteligência artificial ainda precisa ser integrado
-        para executar alterações reais no código.
-      </p>
-
-      <form id="taskForm" class="form-stack">
-        <label for="taskInput">O que deve ser feito?</label>
-        <textarea
-          id="taskInput"
-          rows="5"
-          placeholder="Ex.: analise o projeto, encontre erros e proponha correções."
-          required
-        ></textarea>
-
-        <label for="branchInput">Branch</label>
-        <input id="branchInput" placeholder="Vazia = branch padrão">
-
-        <label for="stepsInput">Limite de operações</label>
-        <input
-          id="stepsInput"
-          type="number"
-          min="8"
-          max="20"
-          step="1"
-          value="14"
-          required
-        >
-
-        <button class="primary" id="runBtn" type="submit">
-          Enviar tarefa
-        </button>
-        <p id="taskMessage" class="form-message" role="status"></p>
-      </form>
-
-      <div class="section-heading">
-        <h2>Execuções recentes</h2>
-        <button id="refreshBtn" class="secondary" type="button">
-          Atualizar
-        </button>
+    <section id="chatPanel" class="panel chat-panel hidden">
+      <div class="chat-head">
+        <div><div class="eyebrow">MEVA ONLINE SOB DEMANDA</div><h1>Conversa</h1><p id="repoLabel" class="muted"></p></div>
+        <button id="newChatBtn" class="ghost" type="button">＋ Nova conversa</button>
       </div>
-
-      <div id="jobsList" class="jobs"></div>
-
-      <button id="logoutBtn" class="link-button" type="button">
-        Desconectar este dispositivo
-      </button>
+      <div class="toolbar">
+        <label class="mode-label" for="modeSelect">Modo de operação</label>
+        <select id="modeSelect">
+          <option value="chat">Conversa normal</option>
+          <option value="agent">Agente de programação</option>
+        </select>
+        <label class="mode-label" for="branchInput">Branch</label>
+        <input id="branchInput" class="branch-input" placeholder="main">
+      </div>
+      <div class="public-note"><b>Conversa pública:</b> o histórico é salvo no repositório e qualquer pessoa pode acessá-lo. Cada mensagem inicia uma execução do GitHub Actions; a resposta não é instantânea.</div>
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="welcome"><div class="welcome-symbol">M</div><h2>MEVA pronta para conversar</h2><p>Faça uma pergunta ou escolha o agente para trabalhar nos arquivos do projeto.</p></div>
+      </div>
+      <form id="messageForm" class="composer">
+        <textarea id="messageInput" rows="3" maxlength="5000" placeholder="Escreva uma mensagem para a MEVA..." required></textarea>
+        <div class="composer-bottom"><span class="small muted">Máximo de 5.000 caracteres</span><button id="sendBtn" class="primary send" type="submit">Enviar ↗</button></div>
+      </form>
+      <div id="taskStatus" class="task-status" role="status"></div>
+      <div class="footer-actions"><button id="refreshConversationBtn" class="ghost" type="button">Atualizar histórico</button><button id="logoutBtn" class="ghost danger" type="button">Desconectar</button></div>
     </section>
-
-    <footer>
-      MEVA · Execução sob demanda
-    </footer>
+    <footer>MEVA · Qwen2.5-Coder-3B · llama.cpp · GitHub Actions</footer>
   </main>
   <script src="./app.js"></script>
 </body>
