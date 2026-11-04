@@ -20,14 +20,14 @@
     <section id="login" class="panel login">
       <div class="eyebrow">ACESSO AO REPOSITÓRIO</div>
       <h1>Conectar à MEVA</h1>
-      <p class="muted">Cada participante deve usar seu próprio Fine-grained Personal Access Token, restrito a este repositório, com <b>Actions: Read and write</b>, <b>Contents: Read</b> e Metadata: Read-only. O token fica temporariamente em sessionStorage; isso não o torna invulnerável a scripts da página. Use um token restrito, não o compartilhe e desconecte ao terminar.</p>
+      <p class="muted">Cada participante deve usar seu próprio Fine-grained Personal Access Token, restrito a este repositório, com <b>Actions: Read and write</b>, <b>Contents: Read and write</b> e Metadata: Read-only. O painel publica anexos como ativos de GitHub Releases e os baixa temporariamente no runner. Use somente arquivos públicos e não confidenciais. O token fica temporariamente em sessionStorage; isso não o torna invulnerável a scripts da página. Use um token restrito, não o compartilhe e desconecte ao terminar.</p>
       <form id="loginForm" class="stack">
         <label for="token">Token pessoal do GitHub</label>
         <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
         <button class="primary" type="submit">Conectar</button>
         <p id="loginStatus" class="status-text" role="status"></p>
       </form>
-      <div class="public-warning"><b>Repositório público:</b> mensagens, respostas, memória, arquivos alterados e logs de execução podem ser vistos por outras pessoas. Não envie senhas, tokens, chaves, endereços ou dados privados.</div>
+      <div class="public-warning"><b>Repositório público:</b> mensagens, respostas, memória, anexos enviados, arquivos alterados e logs podem ser vistos por outras pessoas. Os anexos são publicados em Releases públicas e não entram no histórico Git. Até 5 arquivos, 200 MB por arquivo e 500 MB por envio; apenas texto UTF-8. Não envie senhas, tokens, chaves, endereços ou dados privados.</div>
     </section>
 
     <section id="workspace" class="panel workspace hidden">
@@ -46,16 +46,21 @@
         <select id="savedChats"><option value="">Selecione uma conversa…</option></select>
         <button id="shareChat" class="ghost" type="button">Copiar link</button>
       </div>
-      <div class="public-note"><b>Memória pública:</b> a MEVA salva o histórico no repositório. Cada mensagem inicia um workflow e pode levar alguns minutos. O modelo não fica ligado continuamente.</div>
+      <div class="public-note"><b>Memória pública:</b> a MEVA salva o histórico no repositório. Cada mensagem inicia um workflow e pode levar alguns minutos. O modelo é baixado durante a instalação e guardado no cache do GitHub Actions; a inferência só ocorre quando você envia uma mensagem. O modelo não fica ligado continuamente.</div>
       <div id="messages" class="messages" aria-live="polite"><div class="welcome"><div class="welcome-icon">M</div><h2>Como posso ajudar?</h2><p>Faça uma pergunta ou escolha o agente para analisar e trabalhar nos arquivos do projeto.</p></div></div>
       <form id="composer" class="composer">
-        <textarea id="message" rows="3" maxlength="6000" placeholder="Escreva sua mensagem para a MEVA… (Enter envia, Shift+Enter quebra linha)" required></textarea>
+        <div class="attachment-panel">
+          <label for="attachments">Anexar arquivos — até 200 MB por arquivo</label>
+          <input id="attachments" type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.xml,.html,.htm,.css,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.sh,.bash,.c,.h,.cpp,.hpp,.rs,.go,.java,.kt,.gradle,.properties,.toml,.ini,.cfg,.cmake,.sql,.csv,.svg,.log,.diff,.patch,.rb,.php,.swift,.dart,.lua,.pl,.r,.ipynb,.sln,.csproj,.cs,.xaml,.bat,.ps1,.make,.mk,.dockerfile,.gitignore,.editorconfig,.webmanifest">
+          <div id="attachmentList" class="attachment-list">Nenhum arquivo selecionado. Até 5 arquivos de texto UTF-8, 200 MB cada e 500 MB no total. Binários não são aceitos. Upload por GitHub Release; anexos não entram no Git.</div>
+        </div>
+        <textarea id="message" rows="3" maxlength="6000" placeholder="Escreva sua mensagem para a MEVA… (Enter envia, Shift+Enter quebra linha)"></textarea>
         <div class="composer-footer"><span class="muted small">Até 6.000 caracteres</span><button id="send" class="primary send" type="submit">Enviar ↗</button></div>
       </form>
       <div id="taskStatus" class="task-status" role="status">Pronta para receber uma mensagem.</div>
       <div class="footer-actions"><button id="refresh" class="ghost" type="button">Atualizar conversa</button><a id="actionsLink" href="https://github.com" target="_blank" rel="noopener noreferrer">Ver execuções</a><button id="logout" class="ghost danger" type="button">Desconectar</button></div>
     </section>
-    <footer>MEVA · Qwen2.5-Coder 3B · llama.cpp · GitHub Actions</footer>
+    <footer>MEVA V5 · Qwen2.5-Coder 3B · agente de programação · GitHub Actions</footer>
   </main>
   <script src="./app.js"></script>
 </body>

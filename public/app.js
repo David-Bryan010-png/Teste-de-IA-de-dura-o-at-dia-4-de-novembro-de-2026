@@ -81,7 +81,26 @@ function render() {
     const role = document.createElement("div"); role.className = "bubble-role";
     role.textContent = item.role === "user" ? "VOCÊ" : "MEVA";
     const content = document.createElement("div"); content.className = "bubble-content";
-    content.textContent = String(item.content || "");
+    const messageText = String(item.content || "");
+    const urlPattern = /https:\/\/[^\s<>"']+/g;
+    let cursor = 0;
+    for (const match of messageText.matchAll(urlPattern)) {
+      const rawUrl = match[0];
+      const cleanUrl = rawUrl.replace(/[.,;:!?)}\]]+$/, "");
+      const start = match.index;
+      if (start > cursor) content.appendChild(document.createTextNode(messageText.slice(cursor, start)));
+      try {
+        const parsedUrl = new URL(cleanUrl);
+        if (parsedUrl.protocol === "https:") {
+          const link = document.createElement("a");
+          link.href = parsedUrl.href; link.target = "_blank"; link.rel = "noopener noreferrer";
+          link.textContent = cleanUrl; content.appendChild(link);
+          content.appendChild(document.createTextNode(rawUrl.slice(cleanUrl.length)));
+        } else content.appendChild(document.createTextNode(rawUrl));
+      } catch (_) { content.appendChild(document.createTextNode(rawUrl)); }
+      cursor = start + rawUrl.length;
+    }
+    if (cursor < messageText.length) content.appendChild(document.createTextNode(messageText.slice(cursor)));
     article.append(role, content); root.appendChild(article);
   }
   root.scrollTop = root.scrollHeight;
@@ -207,28 +226,141 @@ async function waitForCurrentRun(previousIds, startedAt) {
   throw new Error("O painel deixou de esperar. A execução pode continuar; use Atualizar conversa ou Ver execuções.");
 }
 
+const MAX_ATTACHMENT_BYTES = 200 * 1024 * 1024;
+const MAX_TOTAL_ATTACHMENT_BYTES = 500 * 1024 * 1024;
+const ALLOWED_ATTACHMENT = /\.(txt|md|json|ya?ml|xml|html?|css|m?js|cjs|tsx?|jsx|py|sh|bash|c|h|cpp|hpp|rs|go|java|kt|gradle|properties|toml|ini|cfg|cmake|sql|csv|svg|log|diff|patch|rb|php|swift|dart|lua|pl|r|ipynb|sln|csproj|cs|xaml|bat|ps1|mk|webmanifest|gitignore|editorconfig)$/i;
+
+function safeAttachmentName(name) {
+  const cleaned = String(name || "arquivo.txt").normalize("NFKC")
+    .replace(/[/\\]/g, "_").replace(/[^A-Za-z0-9._-]/g, "_")
+    .replace(/^\.+/, "").slice(0, 100);
+  if (!cleaned || cleaned === "." || cleaned === ".." || !ALLOWED_ATTACHMENT.test(cleaned))
+    throw new Error(`Tipo de arquivo não aceito: ${name}. Envie arquivos de texto/código suportados.`);
+  return cleaned;
+}
+
+async function createAttachmentRelease(files) {
+  const [o, r] = parts();
+  const stamp = Date.now();
+  const tag = `meva-upload-${chatId}-${stamp}`;
+  const release = await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/releases`, {
+    method: "POST",
+    body: JSON.stringify({
+      tag_name: tag,
+      name: `MEVA anexos ${chatId} ${new Date(stamp).toISOString()}`,
+      body: "Anexos enviados pelo painel MEVA. Arquivos públicos; não incluir segredos.",
+      draft: false,
+      prerelease: true
+    })
+  });
+  const uploaded = [];
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    const name = `${String(index + 1).padStart(2, "0")}-${safeAttachmentName(file.name)}`;
+    const uploadBase = String(release.upload_url || "").replace(/\{\?name,label\}$/, "");
+    if (!uploadBase.startsWith("https://uploads.github.com/"))
+      throw new Error("GitHub não retornou um endereço válido para enviar os anexos.");
+    const uploadUrl = `${uploadBase}?name=${encodeURIComponent(name)}`;
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    const raw = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl, true);
+      xhr.setRequestHeader("Accept", "application/vnd.github+json");
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("X-GitHub-Api-Version", "2022-11-28");
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.upload.addEventListener("progress", event => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          status(`Enviando ${index + 1}/${files.length}: ${file.name} · ${percent}%`);
+        }
+      });
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
+        else {
+          let detail = xhr.responseText;
+          try { detail = JSON.parse(detail).message || detail; } catch (_) {}
+          reject(new Error(`HTTP ${xhr.status} — ${String(detail).slice(0, 220)}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Falha de rede ou CORS ao enviar o anexo para o GitHub."));
+      xhr.onabort = () => reject(new Error("Envio do anexo cancelado."));
+      xhr.send(file);
+    }).catch(error => { throw new Error(`Falha ao enviar ${file.name}: ${error.message}`); });
+    const asset = JSON.parse(raw);
+    uploaded.push({
+      name,
+      original_name: file.name,
+      size: file.size,
+      url: asset.browser_download_url
+    });
+    status(`Anexando ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+  }
+  return { tag, assets: uploaded };
+}
+
+$("attachments").addEventListener("change", () => {
+  const files = Array.from($("attachments").files || []);
+  const list = $("attachmentList");
+  if (!files.length) { list.textContent = "Nenhum arquivo selecionado. Até 5 arquivos de texto UTF-8, 200 MB cada (500 MB por envio)."; return; }
+  const total = files.reduce((sum, file) => sum + file.size, 0);
+  list.textContent = files.slice(0, 5).map(file => `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`).join("\n");
+  list.textContent += `\nTotal: ${(total / 1024 / 1024).toFixed(2)} MB`;
+  if (files.length > 5) list.textContent += "\nSomente os primeiros 5 serão enviados.";
+  if (files.some(file => file.size > MAX_ATTACHMENT_BYTES)) list.textContent += "\nERRO: cada arquivo deve ter no máximo 200 MB.";
+  if (total > MAX_TOTAL_ATTACHMENT_BYTES) list.textContent += "\nERRO: o total por envio deve ser de no máximo 500 MB.";
+});
+
+async function uploadAttachments() {
+  const files = Array.from($("attachments").files || []).slice(0, 5);
+  if (!files.length) return null;
+  const total = files.reduce((sum, file) => sum + file.size, 0);
+  if (files.length > 5) throw new Error("Limite de 5 arquivos por envio.");
+  if (total > MAX_TOTAL_ATTACHMENT_BYTES) throw new Error("O total dos anexos ultrapassa 500 MB por envio.");
+  for (const file of files) {
+    safeAttachmentName(file.name);
+    if (!file.size || file.size > MAX_ATTACHMENT_BYTES)
+      throw new Error(`${file.name}: arquivo vazio ou maior que 200 MB.`);
+    // O upload é binário em streaming pelo navegador; a validação UTF-8 ocorre no runner.
+  }
+  const result = await createAttachmentRelease(files);
+  $("attachments").value = "";
+  $("attachmentList").textContent = `Anexos enviados para a Release ${result.tag}. A MEVA vai baixá-los no runner.`;
+  return result;
+}
+
 $("composer").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (busy) return;
   const text = $("message").value.trim();
-  if (!text) return;
+  const selectedFiles = Array.from($("attachments").files || []);
+  if (!text && !selectedFiles.length) return;
+  if (selectedFiles.length && !text) return status("Diga o que a MEVA deve fazer com os arquivos anexados.", "error");
   if (text.length > 6000) return status("A mensagem excede 6.000 caracteres.", "error");
+  if (selectedFiles.length && text.length > 5200) return status("Com anexos, limite a instrução a 5.200 caracteres para incluir os caminhos dos arquivos.", "error");
   const branch = $("branch").value.trim() || defaultBranch;
   if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.includes("..")) return status("Nome de branch inválido.", "error");
-  const mode = $("mode").value;
+  const mode = selectedFiles.length ? "agent" : $("mode").value;
+  if (selectedFiles.length) $("mode").value = "agent";
   const button = $("send");
   busy = true; button.disabled = true; button.textContent = "Executando…";
   const startedAt = Date.now();
   try {
     const before = await getRuns();
     const previousIds = new Set(before.map(run => run.id));
+    status(selectedFiles.length ? "Enviando anexos ao repositório…" : (mode === "agent" ? "Agente de programação iniciado…" : "Preparando Qwen…"));
+    const uploadedRelease = await uploadAttachments();
+    const attachmentManifest = uploadedRelease ? "\n\nMEVA_ATTACHMENT_MANIFEST: " + JSON.stringify(uploadedRelease.assets) : "";
+    const taskText = [text, attachmentManifest].join("").trim();
+    if (!taskText) throw new Error("Escreva uma instrução para os arquivos anexados.");
+    if (taskText.length > 6000) throw new Error("A instrução e os caminhos dos anexos ultrapassaram 6.000 caracteres.");
     $("message").value = "";
-    chatMessages.push({ role: "user", content: text }); render();
-    status(mode === "agent" ? "Agente de programação iniciado. Ele vai inspecionar os arquivos antes de alterá-los." : "Preparando Qwen e gerando sua resposta…");
+    chatMessages.push({ role: "user", content: taskText }); render();
+    status(mode === "agent" ? "Agente iniciado. Ele vai baixar os anexos da Release, analisar e editar os arquivos permitidos." : "Preparando Qwen e gerando sua resposta…");
     const [o, r] = parts();
     await github(`/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/actions/workflows/${encodeURIComponent(WORKFLOW)}/dispatches`, {
       method: "POST",
-      body: JSON.stringify({ ref: branch, inputs: { mode, message: text, conversation_id: chatId, branch, max_actions: "8" } })
+      body: JSON.stringify({ ref: branch, inputs: { mode, message: taskText, conversation_id: chatId, branch, max_actions: "12" } })
     });
     await waitForCurrentRun(previousIds, startedAt);
     await loadConversation();
