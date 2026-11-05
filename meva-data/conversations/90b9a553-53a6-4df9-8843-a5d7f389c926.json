@@ -1,6 +1,6 @@
 {
   "id": "90b9a553-53a6-4df9-8843-a5d7f389c926",
-  "updated_at": "2026-11-05T02:03:19Z",
+  "updated_at": "2026-11-05T02:29:09Z",
   "model": "Qwen2.5-Coder-3B-Instruct-Q4_K_M",
   "messages": [
     {
@@ -42,6 +42,16 @@
       "role": "assistant",
       "content": "Hoje é sábado, dia 28 de abril.",
       "created_at": "2026-11-05T02:03:19Z"
+    },
+    {
+      "role": "user",
+      "content": "Oi",
+      "created_at": "2026-11-05T02:29:09Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Oi! Como posso ajudar você hoje?",
+      "created_at": "2026-11-05T02:29:09Z"
     }
   ]
 }
