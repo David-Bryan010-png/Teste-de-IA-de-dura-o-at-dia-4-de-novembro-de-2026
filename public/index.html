@@ -3,64 +3,128 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0a1020">
-  <meta name="description" content="MEVA — assistente de IA, conversa, memória e agente de programação.">
+  <meta name="theme-color" content="#080e1b">
+  <meta name="description" content="MEVA — inteligência artificial, Internet e programação.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <title>MEVA — Inteligência Artificial</title>
 </head>
 <body>
-  <main class="app-shell">
+  <main class="app">
     <header class="topbar">
-      <div class="brand"><div class="brand-icon">M</div><div><div class="brand-name">MEVA</div><div class="brand-caption">INTELIGÊNCIA ARTIFICIAL · QWEN LOCAL NO RUNNER</div></div></div>
+      <div class="brand">
+        <div class="logo">M</div>
+        <div>
+          <div class="brand-name">MEVA</div>
+          <div class="brand-caption">INTELIGÊNCIA ARTIFICIAL</div>
+        </div>
+      </div>
       <span id="connection" class="connection">DESCONECTADA</span>
     </header>
 
     <section id="login" class="panel login">
-      <div class="eyebrow">ACESSO AO REPOSITÓRIO</div>
+      <div class="eyebrow">ACESSO</div>
       <h1>Conectar à MEVA</h1>
-      <p class="muted">Cada participante deve usar seu próprio Fine-grained Personal Access Token, restrito a este repositório, com <b>Actions: Read and write</b>, <b>Contents: Read and write</b> e Metadata: Read-only. O painel publica anexos como ativos de GitHub Releases e os baixa temporariamente no runner. Use somente arquivos públicos e não confidenciais. O token fica temporariamente em sessionStorage; isso não o torna invulnerável a scripts da página. Use um token restrito, não o compartilhe e desconecte ao terminar.</p>
-      <form id="loginForm" class="stack">
+      <p class="muted">
+        Use um Fine-grained Personal Access Token restrito a este
+        repositório, com Actions: Read and write, Contents: Read and
+        write e Metadata: Read-only.
+      </p>
+      <form id="loginForm">
         <label for="token">Token pessoal do GitHub</label>
-        <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
+        <input id="token" type="password" autocomplete="off"
+          placeholder="github_pat_…" required>
         <button class="primary" type="submit">Conectar</button>
-        <p id="loginStatus" class="status-text" role="status"></p>
+        <p id="loginStatus" class="status"></p>
       </form>
-      <div class="public-warning"><b>Repositório público:</b> mensagens, respostas, memória, anexos enviados, arquivos alterados e logs podem ser vistos por outras pessoas. Os anexos são publicados em Releases públicas e não entram no histórico Git. Até 5 arquivos, 200 MB por arquivo e 500 MB por envio; apenas texto UTF-8. Não envie senhas, tokens, chaves, endereços ou dados privados.</div>
+      <div class="warning">
+        <b>Atenção:</b> este repositório é público. Conversas,
+        respostas, arquivos anexados, memória e arquivos publicados
+        podem ser vistos por outras pessoas. Não envie senhas,
+        tokens, chaves privadas ou dados pessoais.
+      </div>
     </section>
 
-    <section id="workspace" class="panel workspace hidden">
+    <section id="workspace" class="panel hidden">
       <div class="workspace-head">
-        <div><div class="eyebrow">ASSISTENTE SOB DEMANDA</div><h1>Conversa com a MEVA</h1><p id="repoInfo" class="muted"></p></div>
+        <div>
+          <div class="eyebrow">ASSISTENTE INTELIGENTE</div>
+          <h1>Conversa com a MEVA</h1>
+          <p id="repoInfo" class="muted"></p>
+        </div>
         <button id="newChat" class="secondary" type="button">＋ Nova</button>
       </div>
+
       <div class="controls">
         <label for="mode">Modo</label>
-        <select id="mode"><option value="chat">Conversa normal</option><option value="agent">Agente de programação</option></select>
+        <select id="mode">
+          <option value="chat">Conversa com Internet</option>
+          <option value="agent">Agente de programação</option>
+        </select>
         <label for="branch">Branch</label>
-        <input id="branch" value="main" autocomplete="off">
+        <input id="branch" value="main">
       </div>
+
       <div class="conversation-tools">
-        <label for="savedChats">Conversas salvas</label>
-        <select id="savedChats"><option value="">Selecione uma conversa…</option></select>
+        <label for="savedChats">Conversas</label>
+        <select id="savedChats">
+          <option value="">Selecione uma conversa…</option>
+        </select>
         <button id="shareChat" class="ghost" type="button">Copiar link</button>
       </div>
-      <div class="public-note"><b>Memória pública:</b> a MEVA salva o histórico no repositório. Cada mensagem inicia um workflow e pode levar alguns minutos. O modelo é baixado durante a instalação e guardado no cache do GitHub Actions; a inferência só ocorre quando você envia uma mensagem. O modelo não fica ligado continuamente.</div>
-      <div id="messages" class="messages" aria-live="polite"><div class="welcome"><div class="welcome-icon">M</div><h2>Como posso ajudar?</h2><p>Faça uma pergunta ou escolha o agente para analisar e trabalhar nos arquivos do projeto.</p></div></div>
+
+      <div class="capabilities">
+        <b>MEVA V6:</b>
+        pesquisa na Internet, consulta páginas, analisa projetos,
+        trabalha com arquivos e ZIPs, programa, compila e executa
+        testes em ambientes compatíveis.
+      </div>
+
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="welcome">
+          <div class="welcome-logo">M</div>
+          <h2>Como posso ajudar?</h2>
+          <p>
+            Pergunte, pesquise, envie um projeto ou peça à MEVA
+            para desenvolver e testar alguma coisa.
+          </p>
+        </div>
+      </div>
+
       <form id="composer" class="composer">
         <div class="attachment-panel">
-          <label for="attachments">Anexar arquivos — até 200 MB por arquivo</label>
-          <input id="attachments" type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.xml,.html,.htm,.css,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.sh,.bash,.c,.h,.cpp,.hpp,.rs,.go,.java,.kt,.gradle,.properties,.toml,.ini,.cfg,.cmake,.sql,.csv,.svg,.log,.diff,.patch,.rb,.php,.swift,.dart,.lua,.pl,.r,.ipynb,.sln,.csproj,.cs,.xaml,.bat,.ps1,.make,.mk,.dockerfile,.gitignore,.editorconfig,.webmanifest">
-          <div id="attachmentList" class="attachment-list">Nenhum arquivo selecionado. Até 5 arquivos de texto UTF-8, 200 MB cada e 500 MB no total. Binários não são aceitos. Upload por GitHub Release; anexos não entram no Git.</div>
+          <label for="attachments">Arquivos e projetos</label>
+          <input id="attachments" type="file" multiple>
+          <div id="attachmentList" class="attachment-list">
+            Até 5 arquivos, 200 MB por arquivo e 500 MB no total.
+            São aceitos arquivos de código, documentos, ZIPs e
+            outros arquivos binários.
+          </div>
         </div>
-        <textarea id="message" rows="3" maxlength="6000" placeholder="Escreva sua mensagem para a MEVA… (Enter envia, Shift+Enter quebra linha)"></textarea>
-        <div class="composer-footer"><span class="muted small">Até 6.000 caracteres</span><button id="send" class="primary send" type="submit">Enviar ↗</button></div>
+
+        <textarea id="message" rows="3" maxlength="5500"
+          placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter quebra linha)"></textarea>
+
+        <div class="composer-footer">
+          <span class="muted small">Até 5.500 caracteres</span>
+          <button id="send" class="primary" type="submit">Enviar ↗</button>
+        </div>
       </form>
-      <div id="taskStatus" class="task-status" role="status">Pronta para receber uma mensagem.</div>
-      <div class="footer-actions"><button id="refresh" class="ghost" type="button">Atualizar conversa</button><a id="actionsLink" href="https://github.com" target="_blank" rel="noopener noreferrer">Ver execuções</a><button id="logout" class="ghost danger" type="button">Desconectar</button></div>
+
+      <div id="taskStatus" class="task-status">
+        Pronta para receber uma mensagem.
+      </div>
+
+      <div class="footer-actions">
+        <button id="refresh" class="ghost" type="button">Atualizar</button>
+        <a id="actionsLink" href="https://github.com"
+          target="_blank" rel="noopener noreferrer">Execuções</a>
+        <button id="logout" class="ghost danger" type="button">Desconectar</button>
+      </div>
     </section>
-    <footer>MEVA V5 · Qwen2.5-Coder 3B · agente de programação · GitHub Actions</footer>
+
+    <footer>MEVA V6 · Qwen2.5-Coder 3B · Internet · Agente de programação</footer>
   </main>
   <script src="./app.js"></script>
 </body>
