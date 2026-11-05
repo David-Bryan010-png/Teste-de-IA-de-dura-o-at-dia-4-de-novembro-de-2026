@@ -1,53 +1,26 @@
-# MEVA V6
-
-## Recursos
-- Qwen2.5-Coder-3B-Instruct Q4_K_M.
-- GitHub Pages como interface.
-- Histórico por conversa.
-- Pesquisa pública na Internet.
-- Leitura de páginas externas.
-- Anexos de código, documentos e ZIPs.
-- Extração segura de arquivos ZIP.
-- Leitura, escrita, substituição e organização de arquivos.
-- Compilação e testes em Python, JavaScript, C, C++, CMake, Make, Rust, Go, Java e .NET.
-- Exportação de arquivos editados e resultados.
-- Cache do modelo e do llama.cpp.
-
-## Modos
-- chat: conversa e pesquisa na Internet, com ferramentas de leitura.
-- agent: programação, edição, extração, compilação, testes e exportação.
-- self_test: teste do carregamento do modelo.
-- install: instalação do painel e preparação do modelo.
+# MEVA V7
+- Chat rápido com Qwen2.5-1.5B-Instruct Q4_K_M.
+- Agente de programação com Qwen2.5-Coder-3B-Instruct Q4_K_M.
+- Pesquisa pública na Internet e leitura de páginas.
+- Anexos binários, ZIP, PDF, documentos e código.
+- Extração ZIP segura para `meva-workspace/`.
+- Criação, leitura, edição e remoção controlada de arquivos.
+- Compilação e testes para Python, Node/npm, C/C++, CMake, Make, Rust, Go, Java/Gradle/Maven e .NET.
+- Diagnóstico de Internet e interfaces de rede do runner.
+- Exportação do projeto e dos arquivos modificados por GitHub Release e Actions Artifact.
+- Histórico JSON por conversa.
 
 ## Instalação
-Execute este workflow na branch padrão com mode=install.
-O GitHub Pages é habilitado pela ação de configuração.
+Execute este workflow na branch padrão com `mode=install`.
 
-## Acesso
-Use um Fine-grained Personal Access Token restrito ao repositório:
-- Actions: Read and write.
-- Contents: Read and write.
-- Metadata: Read-only.
+## Token
+Fine-grained PAT restrito ao repositório: Actions Read and write, Contents Read and write, Metadata Read-only. O painel precisa de acesso para publicar anexos em Releases e iniciar Actions.
 
-## Anexos
-Até 5 arquivos por envio, 200 MB por arquivo e 500 MB no total.
-Os arquivos são publicados temporariamente como ativos de uma GitHub Release.
-ZIPs podem ser extraídos de forma controlada pelo agente.
-Os anexos e os arquivos de saída são públicos enquanto publicados.
+## Limites
+Até 5 anexos por envio, 200 MB por arquivo e 500 MB no total. O ZIP extraído pode ocupar até 1 GB no runner. O runner é temporário. O modelo não treina os próprios pesos.
 
-## Internet
-A MEVA pode fazer pesquisas públicas e consultar páginas externas.
-O acesso usa serviços públicos e não exige uma chave de API.
-Algumas páginas podem bloquear consultas automatizadas.
+## Rede e Wi-Fi
+A MEVA executa em uma VM hospedada na nuvem. Ela pode usar a Internet do runner e diagnosticar interfaces existentes, mas não controla o Wi-Fi do celular ou do computador do usuário. Runners hospedados normalmente não possuem placa de rádio Wi-Fi acessível.
 
-## Compilação
-O agente utiliza ferramentas compatíveis instaladas no runner.
-Builds podem executar scripts do próprio projeto. Por isso, não envie
-códigos desconhecidos ou maliciosos. O ambiente é temporário, mas não
-é uma sandbox de segurança perfeita.
-
-## Limitações
-O modelo não treina os próprios pesos. A memória é o histórico salvo.
-Cada mensagem inicia uma nova execução do GitHub Actions.
-O cache reduz downloads e compilações repetidas, mas não mantém o modelo
-permanentemente carregado.
+## Privacidade
+Este repositório é público. Não envie dados privados, segredos, tokens ou chaves. Builds executam código do projeto e devem ser feitos somente com fontes confiáveis.
