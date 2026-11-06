@@ -1,67 +1,27 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#080e1b">
-  <meta name="description" content="MEVA — IA, Internet, arquivos e programação.">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css">
-  <title>MEVA — Inteligência Artificial</title>
-</head>
-<body>
-  <main class="app">
-    <header class="topbar">
-      <div class="brand"><div class="logo">M</div><div><div class="brand-name">MEVA</div><div class="brand-caption">INTELIGÊNCIA ARTIFICIAL</div></div></div>
-      <span id="connection" class="connection">DESCONECTADA</span>
-    </header>
-
-    <section id="login" class="panel login">
-      <div class="eyebrow">ACESSO AO REPOSITÓRIO</div>
-      <h1>Conectar à MEVA</h1>
-      <p class="muted">Use um Fine-grained Personal Access Token restrito a este repositório, com Actions: Read and write, Contents: Read and write e Metadata: Read-only. O token fica somente na sessão desta aba. Não o compartilhe.</p>
-      <form id="loginForm" class="stack">
-        <label for="token">Token pessoal do GitHub</label>
-        <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
-        <button class="primary" type="submit">Conectar</button>
-        <p id="loginStatus" class="status" role="status"></p>
-      </form>
-      <div class="warning"><b>Privacidade:</b> este repositório é público. Histórico, respostas, anexos e Releases podem ser vistos por terceiros. Não envie senhas, tokens, chaves privadas ou dados pessoais.</div>
-    </section>
-
-    <section id="workspace" class="panel hidden">
-      <div class="workspace-head">
-        <div><div class="eyebrow">ASSISTENTE SOB DEMANDA</div><h1>Conversa com a MEVA</h1><p id="repoInfo" class="muted"></p></div>
-        <button id="newChat" class="secondary" type="button">＋ Nova</button>
-      </div>
-      <div class="controls">
-        <label for="mode">Modo</label>
-        <select id="mode"><option value="chat">Conversa e Internet</option><option value="agent">Agente de programação</option></select>
-        <label for="branch">Branch</label>
-        <input id="branch" value="main" autocomplete="off">
-      </div>
-      <div class="conversation-tools">
-        <label for="savedChats">Conversas salvas</label>
-        <select id="savedChats"><option value="">Selecione uma conversa…</option></select>
-        <button id="shareChat" class="ghost" type="button">Copiar link</button>
-      </div>
-      <div class="capabilities"><b>MEVA V7:</b> pesquisa na Internet, leitura de páginas, arquivos binários e ZIPs, criação e edição de arquivos, programação, compilação, testes e diagnóstico de rede.</div>
-      <div id="messages" class="messages" aria-live="polite"><div class="welcome"><div class="welcome-logo">M</div><h2>Como posso ajudar?</h2><p>Faça uma pergunta, pesquise um assunto ou envie um projeto.</p></div></div>
-      <form id="composer" class="composer">
-        <div class="attachment-panel">
-          <label for="attachments">Anexar arquivos e projetos</label>
-          <input id="attachments" type="file" multiple>
-          <div id="attachmentList" class="attachment-list">Até 5 arquivos, 200 MB por arquivo e 500 MB no total. Aceita ZIP, PDF, código, documentos e binários.</div>
-        </div>
-        <textarea id="message" rows="3" maxlength="5500" placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter quebra linha)"></textarea>
-        <div class="composer-footer"><span class="muted small">Até 5.500 caracteres</span><button id="send" class="primary" type="submit">Enviar ↗</button></div>
-      </form>
-      <div id="taskStatus" class="task-status" role="status">Pronta para receber uma mensagem.</div>
-      <div class="footer-actions"><button id="refresh" class="ghost" type="button">Atualizar conversa</button><a id="actionsLink" href="https://github.com" target="_blank" rel="noopener noreferrer">Ver execuções</a><button id="logout" class="ghost danger" type="button">Desconectar</button></div>
-    </section>
-    <footer>MEVA V7 · Qwen · Internet · ferramentas de desenvolvimento</footer>
-  </main>
-  <script src="./app.js"></script>
-</body>
-</html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080e1b"><title>MEVA V8</title><link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#080e1b;color:#edf4ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b365f,transparent 55%),#080e1b}.app{width:min(980px,calc(100% - 18px));margin:auto;padding:16px 0 24px}.top,.head,.foot,.sendrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.top{margin:4px 2px 18px}.brand{font-weight:950;letter-spacing:.2em}.state,.muted{color:#9aacc4;font-size:11px}.panel{border:1px solid #263650;border-radius:18px;background:linear-gradient(145deg,#121e32,#0b1628);padding:19px;box-shadow:0 20px 60px #0005}.hidden{display:none!important}h1{font-size:25px;margin:5px 0 12px}.eyebrow{font-size:9px;letter-spacing:.15em;color:#91bcff;font-weight:900}input,textarea,select{width:100%;padding:12px;border:1px solid #263650;border-radius:10px;background:#081426;color:#edf4ff;font:inherit;min-width:0}label{display:block;font-size:11px;font-weight:750;margin:10px 0 6px}button{border:1px solid #344d6c;border-radius:10px;padding:10px 14px;background:#11233b;color:#eaf3ff;font-weight:800;cursor:pointer}.primary{background:linear-gradient(110deg,#bad8ff,#79aefb);color:#081426;border:0}.warning,.cap{padding:11px;border:1px solid #66552f;border-radius:10px;background:#251f15;color:#e7d5aa;font-size:10px;line-height:1.55;margin-top:13px}.cap{border-color:#29486d;background:#10223a;color:#c5dafa}.grid{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px;align-items:center}.grid label{margin:0}.messages{height:54vh;min-height:280px;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:14px;margin:12px 0;background:#071222;border:1px solid #263650;border-radius:12px}.bubble{max-width:92%;padding:12px;border:1px solid #263650;border-radius:12px;background:#101f34;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.65}.user{align-self:flex-end;background:#182f4d}.role{font-size:9px;font-weight:900;color:#91bcff;letter-spacing:.12em;margin-bottom:5px}.attachments{border:1px dashed #344d6c;border-radius:10px;padding:10px;margin:10px 0}.attachment-list{white-space:pre-wrap;color:#9aacc4;font-size:10px}.status{min-height:20px;font-size:11px;color:#9aacc4;overflow-wrap:anywhere}.ok{color:#65d8a9}.err{color:#ff8e9a}.small{font-size:10px;color:#9aacc4}a{color:#91bcff}footer{text-align:center;color:#71839d;font-size:10px;padding:18px}@media(max-width:620px){.panel{padding:14px}.grid{grid-template-columns:1fr 1fr}.grid label{margin-bottom:-4px}.messages{height:52vh}.bubble{max-width:98%}}
+</style></head><body><main class="app">
+<header class="top"><div class="brand">◆ MEVA V8</div><span id="connection" class="state">DESCONECTADA</span></header>
+<section id="login" class="panel"><div class="eyebrow">ASSISTENTE DE IA</div><h1>Conectar à MEVA</h1><p class="muted">Use um Fine-grained Personal Access Token restrito a este repositório: Actions Read and write, Contents Read and write, Metadata Read-only. O token fica somente na sessão desta aba.</p><form id="loginForm"><label for="token">Token do GitHub</label><input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required><button class="primary" type="submit">Conectar</button><div id="loginStatus" class="status"></div></form><div class="warning">Este repositório é público. Anexos enviados por Release, histórico e resultados podem ficar visíveis publicamente. Não envie senhas, tokens, chaves privadas ou dados pessoais.</div></section>
+<section id="workspace" class="panel hidden"><div class="head"><div><div class="eyebrow">ASSISTENTE SOB DEMANDA</div><h1>Conversa com a MEVA</h1><div id="repoInfo" class="muted"></div></div><button id="newChat">＋ Nova</button></div>
+<div class="grid"><label for="mode">Modo</label><select id="mode"><option value="chat">Conversa rápida</option><option value="agent">Agente completo</option></select><label for="branch">Branch</label><input id="branch" value="main"></div>
+<div class="cap"><b>V8:</b> modelo de chat leve, detecção automática de acelerador real, CPU OpenBLAS, leitura de ZIP por dentro, Bash completo, navegador Playwright, criação de arquivos, compilação e testes.</div>
+<div id="messages" class="messages"></div><form id="composer"><div class="attachments"><label for="files">Arquivos e projetos (ZIP/PDF/binários/código)</label><input id="files" type="file" multiple><div id="fileInfo" class="attachment-list">Até 5 arquivos; 200 MB por arquivo; 500 MB no total.</div></div><textarea id="message" rows="3" maxlength="5500" placeholder="Escreva sua mensagem… (Enter envia)"></textarea><div class="sendrow"><span class="small">Ações do agente: até 24 por execução</span><button id="send" class="primary" type="submit">Enviar ↗</button></div></form><div id="status" class="status">Pronta.</div><div class="foot"><button id="refresh">Atualizar</button><a id="runs" target="_blank" rel="noopener">Execuções</a><button id="logout">Desconectar</button></div></section><footer>MEVA V8 · Qwen · llama.cpp · terminal · ZIP · Chromium</footer></main>
+<script>
+(()=>{'use strict';const $=id=>document.getElementById(id),K='meva_v8_pat',R='meva_v8_repo',C='meva_v8_chat',W='MEVA-INSTALADOR.yml',MAX=500*1024*1024;let owner='',repo='',branch='main',cid='',busy=false,messages=[];
+const say=(t,k='')=>{$('status').textContent=t;$('status').className='status '+k};const api=async(path,opt={})=>{const token=sessionStorage.getItem(K);if(!token)throw Error('Sessão desconectada');const h={Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{})};const r=await fetch('https://api.github.com'+path,{...opt,headers:h});if(r.status===204)return null;const t=await r.text();if(!r.ok)throw Error(r.status+': '+(JSON.parse(t||'{}').message||t).slice(0,220));return t?JSON.parse(t):null};const parts=()=>`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;const valid=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(x);
+function render(){const root=$('messages');root.replaceChildren();if(!messages.length){const p=document.createElement('div');p.className='muted';p.textContent='Como posso ajudar?';root.append(p)}for(const m of messages){const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'');const r=document.createElement('div');r.className='role';r.textContent=m.role==='user'?'VOCÊ':'MEVA';const c=document.createElement('div');c.textContent=m.content||'';d.append(r,c);root.append(d)}root.scrollTop=root.scrollHeight}
+async function loadConversation(){if(!valid(cid))return;try{const d=await api(parts()+'/contents/meva-data/conversations/'+cid+'.json?ref='+encodeURIComponent($('branch').value||branch));const raw=Uint8Array.from(atob(d.content.replace(/\s/g,'')),c=>c.charCodeAt(0));const obj=JSON.parse(new TextDecoder().decode(raw));messages=Array.isArray(obj.messages)?obj.messages:[];render()}catch(e){if(!String(e.message).startsWith('404:'))throw e}}
+async function connect(){const info=await api(parts());owner=info.owner.login;repo=info.name;branch=info.default_branch||'main';$('repoInfo').textContent=owner+'/'+repo+' · '+branch;const q=new URLSearchParams(location.search).get('conversation');cid=valid(q)?q:(localStorage.getItem(C)||crypto.randomUUID());localStorage.setItem(C,cid);$('branch').value=branch;$('runs').href='https://github.com/'+owner+'/'+repo+'/actions/workflows/'+W;$('connection').textContent='CONECTADA';$('connection').className='state ok';$('login').classList.add('hidden');$('workspace').classList.remove('hidden');await loadConversation()}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();sessionStorage.setItem(K,$('token').value.trim());try{await connect();$('token').value=''}catch(x){sessionStorage.removeItem(K);$('loginStatus').textContent=x.message}});
+$('files').addEventListener('change',()=>{const f=[...$('files').files],total=f.reduce((a,b)=>a+b.size,0);$('fileInfo').textContent=f.map(x=>x.name+' · '+(x.size/1048576).toFixed(1)+' MB').join('\n')+'\nTotal: '+(total/1048576).toFixed(1)+' MB'+(f.length>5||f.some(x=>x.size>200*1048576)||total>MAX?'\nLIMITE EXCEDIDO':'')});
+async function upload(){const fs=[...$('files').files];if(!fs.length)return '';if(fs.length>5||fs.some(x=>x.size>200*1048576)||fs.reduce((a,b)=>a+b.size,0)>MAX)throw Error('Limite de anexos excedido.');const rel=await api(parts()+'/releases',{method:'POST',body:JSON.stringify({tag_name:'meva-upload-'+cid+'-'+Date.now(),name:'MEVA V8 input',body:'Anexos de entrada; repositório público.',draft:false,prerelease:true})});const base=rel.upload_url.replace(/\{\?name,label\}$/,'');const assets=[];for(let i=0;i<fs.length;i++){const file=fs[i],name=String(i+1).padStart(2,'0')+'-'+file.name.replace(/[^A-Za-z0-9._-]/g,'_').slice(0,90);const response=await fetch(base+'?name='+encodeURIComponent(name),{method:'POST',headers:{Authorization:'Bearer '+sessionStorage.getItem(K),Accept:'application/vnd.github+json','Content-Type':file.type||'application/octet-stream'},body:file});if(!response.ok)throw Error('Upload falhou: HTTP '+response.status);const a=await response.json();assets.push({name,size:file.size,url:a.browser_download_url})}return JSON.stringify(assets)}
+async function runs(){const d=await api(parts()+'/actions/workflows/'+W+'/runs?event=workflow_dispatch&per_page=30');return d.workflow_runs||[]}
+async function poll(previous){const start=Date.now(),end=start+110*60*1000;while(Date.now()<end){const all=await runs(),r=all.find(x=>!previous.has(x.id)&&String(x.display_title||'').includes(cid));if(r){const d=await api(parts()+'/actions/runs/'+r.id);say('MEVA · execução #'+r.run_number+' · '+d.status);if(d.status==='completed'){if(d.conclusion!=='success')throw Error('Execução terminou em '+d.conclusion+'. Veja os logs.');return}}else say('Solicitação enviada; aguardando o runner…');await new Promise(x=>setTimeout(x,5000))}throw Error('Tempo de espera do painel excedido; a execução pode continuar no GitHub Actions.')}
+$('composer').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const msg=$('message').value.trim(),files=[...$('files').files];if(!msg&&!files.length)return;const branch=$('branch').value.trim()||'main';if(!/^[A-Za-z0-9._/-]+$/.test(branch)||branch.includes('..'))return say('Branch inválida.','err');busy=true;$('send').disabled=true;try{const old=await runs(),ids=new Set(old.map(x=>x.id));say(files.length?'Enviando anexos…':'Iniciando MEVA…');const attachments=await upload();const mode=files.length?'agent':$('mode').value;const task=msg||'Inspecione todos os anexos; identifique e explique a estrutura e o conteúdo.';messages.push({role:'user',content:task});render();$('message').value='';$('files').value='';const response=await api(parts()+'/actions/workflows/'+W+'/dispatches',{method:'POST',body:JSON.stringify({ref:branch,inputs:{mode,message:task,conversation_id:cid,branch,max_actions:'24',attachments}})});await poll(ids);await loadConversation();say('Resposta recebida.','ok')}catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}finally{busy=false;$('send').disabled=false}});
+$('newChat').onclick=()=>{cid=crypto.randomUUID();localStorage.setItem(C,cid);messages=[];window.history.replaceState({},'',location.pathname+'?conversation='+cid);render();say('Nova conversa criada.')};$('refresh').onclick=()=>loadConversation().then(()=>say('Atualizado.','ok')).catch(e=>say(e.message,'err'));$('logout').onclick=()=>{sessionStorage.removeItem(K);location.reload()};if(sessionStorage.getItem(K)){const p=location.hostname.endsWith('.github.io')?location.hostname.replace('.github.io','')+'/'+(location.pathname.split('/').filter(Boolean)[0]||''):'';if(p){[owner,repo]=p.split('/');connect().catch(e=>{sessionStorage.removeItem(K);$('loginStatus').textContent=e.message})}}
+})();</script></body></html>

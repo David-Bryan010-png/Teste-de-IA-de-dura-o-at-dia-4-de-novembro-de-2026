@@ -1,26 +1,18 @@
-# MEVA V7
-- Chat rápido com Qwen2.5-1.5B-Instruct Q4_K_M.
-- Agente de programação com Qwen2.5-Coder-3B-Instruct Q4_K_M.
-- Pesquisa pública na Internet e leitura de páginas.
-- Anexos binários, ZIP, PDF, documentos e código.
-- Extração ZIP segura para `meva-workspace/`.
-- Criação, leitura, edição e remoção controlada de arquivos.
-- Compilação e testes para Python, Node/npm, C/C++, CMake, Make, Rust, Go, Java/Gradle/Maven e .NET.
-- Diagnóstico de Internet e interfaces de rede do runner.
-- Exportação do projeto e dos arquivos modificados por GitHub Release e Actions Artifact.
-- Histórico JSON por conversa.
-
+# MEVA V8
+- Chat leve: Qwen2.5-0.5B-Instruct Q4_K_M (~491 MB), qualidade menor que modelos maiores.
+- Programação: Qwen2.5-Coder-3B-Instruct Q4_K_M.
+- llama.cpp com backend detectado automaticamente: CUDA, HIP/ROCm, Vulkan ou CPU/OpenMP/OpenBLAS.
+- Inspeção de ZIP sem extração, leitura de entradas e extração segura com limites.
+- Terminal Bash integral sob demanda no runner efêmero, sem variáveis de segredo do GitHub no subprocesso.
+- Chromium/Playwright headless sob demanda; ler, clicar, preencher, screenshot e download.
+- Criação, leitura, edição, busca, compilação, testes, pesquisa web e exportação de projeto.
 ## Instalação
-Execute este workflow na branch padrão com `mode=install`.
-
+Execute este workflow na branch padrão com mode=install.
 ## Token
-Fine-grained PAT restrito ao repositório: Actions Read and write, Contents Read and write, Metadata Read-only. O painel precisa de acesso para publicar anexos em Releases e iniciar Actions.
-
-## Limites
-Até 5 anexos por envio, 200 MB por arquivo e 500 MB no total. O ZIP extraído pode ocupar até 1 GB no runner. O runner é temporário. O modelo não treina os próprios pesos.
-
-## Rede e Wi-Fi
-A MEVA executa em uma VM hospedada na nuvem. Ela pode usar a Internet do runner e diagnosticar interfaces existentes, mas não controla o Wi-Fi do celular ou do computador do usuário. Runners hospedados normalmente não possuem placa de rádio Wi-Fi acessível.
-
-## Privacidade
-Este repositório é público. Não envie dados privados, segredos, tokens ou chaves. Builds executam código do projeto e devem ser feitos somente com fontes confiáveis.
+Fine-grained PAT restrito a este repositório: Actions Read and write, Contents Read and write, Metadata Read-only.
+## Limites e privacidade
+Até 5 anexos, 200 MB por arquivo, 500 MB por envio; ZIP até 1 GB expandido. Este repositório é público: Releases, histórico e arquivos anexados podem ficar públicos. Nunca envie segredos.
+## Acelerador
+Runner padrão ubuntu-24.04 normalmente não tem GPU. A V8 detecta dispositivos realmente expostos; sem GPU, usa CPU. OpenBLAS pode acelerar processamento de prompt, mas não garante aumento de tokens/segundo. GPU requer runner e driver compatíveis.
+## Terminal e navegador
+Comandos rodam na VM temporária do GitHub Actions, não no celular/PC do usuário. Browser usa Chromium headless e não herda logins do seu navegador. Não contorna CAPTCHA/MFA.
