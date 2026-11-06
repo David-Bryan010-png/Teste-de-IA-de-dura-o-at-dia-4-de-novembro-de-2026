@@ -67,7 +67,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -170,12 +170,12 @@ jobs:
           fi
 
       - name: Configurar Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
       - name: Criar artefato Pages
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
@@ -202,13 +202,13 @@ jobs:
           echo "Acelerador real: $B"
 
       - name: Cache do llama.cpp
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/meva/llama.cpp
           key: meva-v8-llama-${{ runner.os }}-${{ steps.accel.outputs.backend }}-${{ env.LLAMA_CACHE_VERSION }}
 
       - name: Cache do modelo de chat
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/meva/models/chat
           key: meva-v8-chat-${{ runner.os }}-${{ env.CHAT_MODEL_CACHE_VERSION }}
@@ -269,7 +269,7 @@ jobs:
     steps:
       - name: Deploy Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   ai:
     name: Executar MEVA V8
@@ -280,14 +280,14 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Preparar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -333,28 +333,28 @@ jobs:
 
       - name: Cache llama.cpp
         if: ${{ steps.request.outputs.fast != 'true' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/meva/llama.cpp
           key: meva-v8-llama-${{ runner.os }}-${{ steps.accelerator.outputs.backend }}-${{ env.LLAMA_CACHE_VERSION }}
 
       - name: Cache modelo chat
         if: ${{ inputs.mode == 'chat' && steps.request.outputs.fast != 'true' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/meva/models/chat
           key: meva-v8-chat-${{ runner.os }}-${{ env.CHAT_MODEL_CACHE_VERSION }}
 
       - name: Cache modelo agente
         if: ${{ inputs.mode == 'agent' || inputs.mode == 'self_test' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/meva/models/agent
           key: meva-v8-agent-${{ runner.os }}-${{ env.AGENT_MODEL_CACHE_VERSION }}
 
       - name: Cache Chromium Playwright
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: meva-v8-playwright-${{ runner.os }}-chromium-v1
@@ -368,28 +368,29 @@ jobs:
           sudo apt-get install -y --no-install-recommends build-essential gcc g++ clang make cmake ninja-build pkg-config libopenblas-dev libopenblas0-pthread git curl wget zip unzip p7zip-full file python3-dev python3-venv python3-pip poppler-utils libssl-dev zlib1g-dev libffi-dev libsqlite3-dev libxml2-dev maven gradle php-cli ruby-full lua5.4 perl iproute2 iputils-ping dnsutils traceroute netcat-openbsd
           python -m pip install --disable-pip-version-check pytest
 
-      - name: Preparar Node sem cache de lockfile obrigatório
+      - name: Preparar Node.js 22 sem cache automático de npm
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
+          package-manager-cache: false
 
       - name: Preparar Go
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: stable
 
       - name: Preparar Java
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Preparar .NET
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
@@ -919,7 +920,7 @@ jobs:
 
       - name: Enviar artefato do projeto
         if: ${{ inputs.mode == 'agent' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: meva-v8-result-${{ github.run_id }}
           path: /tmp/MEVA-V8-RESULT.zip
@@ -956,18 +957,21 @@ jobs:
           if [[ -n "$SOURCE_TAG" ]]; then gh release delete "$SOURCE_TAG" --repo "$GH_REPO" --cleanup-tag --yes || true; fi
 
       - name: Persistir histórico e alterações de projeto
+        env:
+          TARGET_BRANCH: ${{ inputs.branch || github.ref_name }}
         shell: bash
         run: |
           set -Eeuo pipefail
+          git check-ref-format --branch "$TARGET_BRANCH" >/dev/null
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
           git add -A -- . ':(exclude).github/**' ':(exclude)meva-inbox/**' ':(exclude)meva-workspace/**' ':(exclude)**/node_modules/**' ':(exclude)**/.venv/**' ':(exclude)**/venv/**' ':(exclude)**/.cache/**' ':(exclude)**/.gradle/**' ':(exclude)**/.pytest_cache/**' ':(exclude)**/__pycache__/**' ':(exclude)**/target/**' ':(exclude)**/build-meva/**' ':(exclude)**/bin/**' ':(exclude)**/obj/**'
           git diff --cached --check
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git commit -m 'MEVA V8: memória e alterações'
             AUTH="$(printf 'x-access-token:%s' "${{ github.token }}" | base64 -w0)"
-            git -c "http.extraheader=AUTHORIZATION: basic $AUTH" fetch origin "+refs/heads/${{ inputs.branch || github.ref_name }}:refs/remotes/origin/${{ inputs.branch || github.ref_name }}"
-            git rebase "origin/${{ inputs.branch || github.ref_name }}"
-            git -c "http.extraheader=AUTHORIZATION: basic $AUTH" push origin "HEAD:${{ inputs.branch || github.ref_name }}"
+            git -c "http.extraheader=AUTHORIZATION: basic $AUTH" fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
+            git rebase "origin/${TARGET_BRANCH}"
+            git -c "http.extraheader=AUTHORIZATION: basic $AUTH" push origin "HEAD:${TARGET_BRANCH}"
           fi
 
       - name: Diagnóstico
@@ -981,7 +985,7 @@ jobs:
 
       - name: Enviar diagnóstico
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: meva-v8-diagnostics-${{ github.run_id }}
           path: /tmp/meva-diagnostics
