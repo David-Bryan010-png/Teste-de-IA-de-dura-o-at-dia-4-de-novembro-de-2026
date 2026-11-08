@@ -1,0 +1,19 @@
+{
+  "id": "b1a21a4e-7bb1-40df-a408-b8254d982ab8",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Oi",
+      "created_at": "2026-11-08T01:39:26Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Olá! Sou a MEVA CODE V11. Como posso ajudar no seu projeto?",
+      "created_at": "2026-11-08T01:39:26Z"
+    }
+  ],
+  "updated_at": "2026-11-08T01:39:26Z",
+  "model": "external",
+  "provider": "local",
+  "autonomy": "auto"
+}
