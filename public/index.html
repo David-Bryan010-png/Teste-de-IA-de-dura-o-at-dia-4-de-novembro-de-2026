@@ -2,130 +2,483 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#080e1b">
-  <title>MEVA V9</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+  <meta name="theme-color" content="#0a0f1a">
+  <title>MEVA CODE V11</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <style>
-    :root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#080e1b;color:#edf4ff}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b365f,transparent 55%),#080e1b}
-    .app{width:min(1040px,calc(100% - 18px));margin:auto;padding:16px 0 28px}
-    .top,.head,.foot,.sendrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .top{margin:4px 2px 18px}.brand{font-weight:950;letter-spacing:.2em}.state,.muted{color:#9aacc4;font-size:11px}
-    .panel{border:1px solid #263650;border-radius:18px;background:linear-gradient(145deg,#121e32,#0b1628);padding:19px;box-shadow:0 20px 60px #0005}
-    .hidden{display:none!important}h1{font-size:25px;margin:5px 0 12px}.eyebrow{font-size:9px;letter-spacing:.15em;color:#91bcff;font-weight:900}
-    input,textarea,select{width:100%;padding:12px;border:1px solid #263650;border-radius:10px;background:#081426;color:#edf4ff;font:inherit;min-width:0}
-    label{display:block;font-size:11px;font-weight:750;margin:10px 0 6px}
-    button{border:1px solid #344d6c;border-radius:10px;padding:10px 14px;background:#11233b;color:#eaf3ff;font-weight:800;cursor:pointer}
-    button:disabled{opacity:.45;cursor:wait}.primary{background:linear-gradient(110deg,#bad8ff,#79aefb);color:#081426;border:0}
-    .warning,.cap{padding:11px;border:1px solid #66552f;border-radius:10px;background:#251f15;color:#e7d5aa;font-size:10px;line-height:1.55;margin-top:13px}
-    .cap{border-color:#29486d;background:#10223a;color:#c5dafa}.grid{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px;align-items:center}
-    .grid label{margin:0}.messages{height:54vh;min-height:280px;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:14px;margin:12px 0;background:#071222;border:1px solid #263650;border-radius:12px}
-    .bubble{max-width:94%;padding:12px;border:1px solid #263650;border-radius:12px;background:#101f34;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.65}
-    .user{align-self:flex-end;background:#182f4d}.role{font-size:9px;font-weight:900;color:#91bcff;letter-spacing:.12em;margin-bottom:5px}
-    .attachments{border:1px dashed #344d6c;border-radius:10px;padding:10px;margin:10px 0}.attachment-list{white-space:pre-wrap;color:#9aacc4;font-size:10px}
-    .status{min-height:20px;font-size:11px;color:#9aacc4;overflow-wrap:anywhere}.ok{color:#65d8a9}.err{color:#ff8e9a}
-    .small{font-size:10px;color:#9aacc4}a{color:#91bcff}footer{text-align:center;color:#71839d;font-size:10px;padding:18px}
-    @media(max-width:620px){.panel{padding:14px}.grid{grid-template-columns:1fr 1fr}.messages{height:52vh}.bubble{max-width:99%}}
+    :root {
+      color-scheme: dark;
+      --bg: #0a0f1a;
+      --panel: #121a2b;
+      --border: #2a3a55;
+      --text: #e8f0ff;
+      --muted: #8aa0c0;
+      --accent: #5b9cff;
+      --accent2: #7ad0ff;
+      --ok: #4ade80;
+      --err: #f87171;
+      --warn: #fbbf24;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); height: 100dvh; overflow: hidden; }
+    .app { display: flex; flex-direction: column; height: 100dvh; max-width: 520px; margin: 0 auto; }
+    header.top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .brand { font-weight: 800; letter-spacing: 0.5px; font-size: 15px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--err); display: inline-block; margin-right: 6px; }
+    .status-dot.ok { background: var(--ok); }
+    main.views { flex: 1; overflow: auto; padding: 12px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    h1, h2 { margin: 0 0 8px; font-size: 18px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    label { display: block; font-size: 12px; margin: 10px 0 4px; color: var(--muted); }
+    input, textarea, select, button {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0d1525; color: var(--text); font: inherit; font-size: 15px;
+    }
+    button { background: #1a2740; font-weight: 600; cursor: pointer; }
+    button.primary { background: linear-gradient(135deg, #5b9cff, #3b82f6); color: #fff; border: 0; }
+    button:disabled { opacity: 0.5; }
+    .messages { height: 48vh; min-height: 220px; overflow-y: auto; padding: 8px; background: #0d1525; border-radius: 12px; border: 1px solid var(--border); margin: 10px 0; }
+    .bubble { max-width: 92%; padding: 10px 12px; border-radius: 12px; margin: 6px 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .bubble.user { background: #1e3a5f; align-self: flex-end; margin-left: auto; }
+    .bubble.assistant { background: #162033; }
+    .role { font-size: 10px; font-weight: 700; color: var(--accent2); margin-bottom: 3px; }
+    nav.bottom {
+      display: flex; border-top: 1px solid var(--border); background: var(--panel); flex-shrink: 0;
+    }
+    nav.bottom button {
+      flex: 1; padding: 14px 6px; background: transparent; border: 0; border-radius: 0; font-size: 11px;
+      color: var(--muted);
+    }
+    nav.bottom button.active { color: var(--accent); font-weight: 700; }
+    .file-list { font-size: 13px; }
+    .file-list div { padding: 8px; border-bottom: 1px solid var(--border); }
+    .warning { background: #2a2210; border: 1px solid #66552f; color: #e7d5aa; padding: 10px; border-radius: 10px; font-size: 12px; margin-top: 10px; }
+    .status-bar { font-size: 12px; color: var(--muted); min-height: 18px; margin: 6px 0; }
+    .status-bar.ok { color: var(--ok); }
+    .status-bar.err { color: var(--err); }
+    @media (min-width: 700px) {
+      .app { max-width: 900px; }
+      .messages { height: 55vh; }
+    }
   </style>
 </head>
 <body>
-<main class="app">
-  <header class="top"><div class="brand">◆ MEVA V9</div><span id="connection" class="state">DESCONECTADA</span></header>
-  <section id="login" class="panel">
-    <div class="eyebrow">ASSISTENTE DE IA</div><h1>Conectar à MEVA</h1>
-    <p class="muted">Use um Fine-grained Personal Access Token limitado a este repositório: Actions Read and write, Contents Read and write e Metadata Read-only. O token fica somente na sessão desta aba.</p>
-    <form id="loginForm"><label for="token">Token do GitHub</label><input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required><button class="primary" type="submit">Conectar</button><div id="loginStatus" class="status"></div></form>
-    <div class="warning">Atenção: este repositório é público. Anexos enviados por Releases, histórico, arquivos e resultados podem ficar públicos. Nunca envie senhas, tokens, chaves privadas, documentos pessoais ou dados confidenciais.</div>
-  </section>
-  <section id="workspace" class="panel hidden">
-    <div class="head"><div><div class="eyebrow">AGENTE SOB DEMANDA</div><h1>Conversa com a MEVA</h1><div id="repoInfo" class="muted"></div></div><button id="newChat">＋ Nova conversa</button></div>
-    <div class="grid">
-      <label for="mode">Modo</label><select id="mode"><option value="chat">Conversa rápida</option><option value="agent">Agente completo</option></select>
-      <label for="branch">Branch</label><input id="branch" value="main">
-    </div>
-    <div class="cap"><b>V9:</b> chat leve, agente de programação, memória, leitura e criação de arquivos, ZIP, PDF, terminal Bash, navegador, pesquisa web, compilação, testes e exportação.</div>
-    <div id="messages" class="messages"></div>
-    <form id="composer">
-      <div class="attachments"><label for="files">Arquivos, ZIPs, PDFs, imagens e projetos</label><input id="files" type="file" multiple><div id="fileInfo" class="attachment-list">Até 5 arquivos; 200 MB por arquivo; 500 MB por envio.</div></div>
-      <textarea id="message" rows="3" maxlength="5500" placeholder="Escreva uma pergunta ou tarefa… (Enter envia; Shift+Enter quebra linha)"></textarea>
-      <div class="sendrow"><span class="small">Agente: até 30 ações por execução</span><button id="send" class="primary" type="submit">Enviar ↗</button></div>
-    </form>
-    <div id="status" class="status">Pronta.</div>
-    <div class="foot"><button id="refresh">Atualizar</button><a id="runs" target="_blank" rel="noopener">Execuções</a><button id="share">Copiar link</button><button id="logout">Desconectar</button></div>
-  </section>
-  <footer>MEVA V9 · Qwen · llama.cpp · agente · terminal · ZIP · navegador</footer>
-</main>
+<div class="app">
+  <header class="top">
+    <div class="brand">◆ MEVA CODE V11</div>
+    <div><span id="connDot" class="status-dot"></span><span id="connText">Desconectado</span></div>
+  </header>
+  <main class="views">
+    <!-- Login -->
+    <section id="view-login" class="view active">
+      <div class="panel">
+        <h1>Conectar</h1>
+        <p class="muted">Use um Fine-grained Personal Access Token com permissões limitadas a este repositório: <b>Actions: Read and write</b>, <b>Contents: Read and write</b>, <b>Metadata: Read-only</b>.</p>
+        <form id="loginForm">
+          <label>Token do GitHub</label>
+          <input id="token" type="password" autocomplete="off" placeholder="github_pat_..." required>
+          <button class="primary" type="submit" style="margin-top:10px">Conectar</button>
+        </form>
+        <div id="loginStatus" class="status-bar"></div>
+        <div class="warning">Repositório público: anexos, histórico e resultados podem ficar públicos. Nunca envie senhas, chaves ou dados pessoais.</div>
+      </div>
+    </section>
+    <!-- Chat -->
+    <section id="view-chat" class="view">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Conversa</h2>
+          <button id="newChat" style="width:auto;padding:8px 12px;font-size:13px">＋ Nova</button>
+        </div>
+        <div id="repoInfo" class="muted" style="margin:6px 0 10px"></div>
+        <div class="messages" id="messages"></div>
+        <form id="composer">
+          <label>Anexos (ZIP, PDF, código...)</label>
+          <input id="files" type="file" multiple>
+          <div id="fileInfo" class="muted" style="font-size:12px;margin:4px 0 8px">Até 5 arquivos · 200 MB cada</div>
+          <textarea id="message" rows="3" placeholder="Descreva a tarefa ou faça uma pergunta... (Enter envia)"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <select id="mode" style="flex:1">
+              <option value="chat">Chat rápido</option>
+              <option value="agent">Agente completo</option>
+            </select>
+            <select id="autonomy" style="flex:1">
+              <option value="ask">Ask</option>
+              <option value="safe">Safe</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+          <button class="primary" id="send" type="submit" style="margin-top:10px">Enviar ↗</button>
+        </form>
+        <div id="status" class="status-bar">Pronta.</div>
+      </div>
+    </section>
+    <!-- Files -->
+    <section id="view-files" class="view">
+      <div class="panel">
+        <h2>Arquivos do projeto</h2>
+        <p class="muted">Lista obtida via API (somente leitura nesta visão). O agente pode modificar via tarefas.</p>
+        <div id="fileList" class="file-list">Conecte-se para carregar.</div>
+        <button id="refreshFiles" style="margin-top:10px">Atualizar lista</button>
+      </div>
+    </section>
+    <!-- Tasks -->
+    <section id="view-tasks" class="view">
+      <div class="panel">
+        <h2>Tarefas e execuções</h2>
+        <p class="muted">Acompanhe as execuções do GitHub Actions.</p>
+        <a id="runsLink" target="_blank" rel="noopener" style="color:var(--accent)">Ver execuções no GitHub</a>
+        <div id="taskStatus" class="status-bar" style="margin-top:12px"></div>
+      </div>
+    </section>
+    <!-- Settings -->
+    <section id="view-settings" class="view">
+      <div class="panel">
+        <h2>Configurações</h2>
+        <label>Branch</label>
+        <input id="branch" value="main">
+        <label>Provedor de modelo</label>
+        <select id="provider">
+          <option value="local">Local (llama.cpp + Qwen)</option>
+          <option value="openai">OpenAI (secret OPENAI_API_KEY)</option>
+          <option value="xai">xAI / Grok (secret XAI_API_KEY)</option>
+          <option value="anthropic">Anthropic (secret ANTHROPIC_API_KEY)</option>
+        </select>
+        <button id="logout" style="margin-top:16px;background:#3a1a1a">Desconectar</button>
+        <p class="muted" style="margin-top:16px;font-size:12px">MEVA CODE V11 · Agente autônomo · Mobile-first · GitHub Actions + Pages</p>
+      </div>
+    </section>
+  </main>
+  <nav class="bottom">
+    <button data-view="chat">💬 Chat</button>
+    <button data-view="files">📁 Arquivos</button>
+    <button data-view="tasks">⚡ Tarefas</button>
+    <button data-view="settings">⚙️ Ajustes</button>
+  </nav>
+</div>
 <script>
-(()=>{'use strict';
-  const $=id=>document.getElementById(id),KEY='meva_v9_pat',CHAT='meva_v9_chat',WF='MEVA-INSTALADOR.yml';
-  const MAX_FILE=200*1024*1024,MAX_TOTAL=500*1024*1024,MAX_FILES=5;let owner='',repo='',branch='main',cid='',busy=false,messages=[];
-  const say=(t,k='')=>{$('status').textContent=t;$('status').className='status '+k};
-  const loginSay=t=>{$('loginStatus').textContent=t};
-  const valid=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(x);
-  const parts=()=>`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-  async function api(path,opt={}){
-    const token=sessionStorage.getItem(KEY);if(!token)throw Error('Sessão desconectada.');
-    const headers={Accept:'application/vnd.github+json',Authorization:'Bearer '+token,...(opt.body?{'Content-Type':'application/json'}:{})};
-    let response;try{response=await fetch('https://api.github.com'+path,{...opt,headers})}
-    catch(e){throw Error('Falha de rede/CORS ao acessar a API do GitHub. Recarregue o Pages e confira a conexão. Detalhe: '+(e.message||e))}
-    if(response.status===204)return null;const raw=await response.text();if(!response.ok){let detail=raw;try{detail=JSON.parse(raw).message||raw}catch(_){}throw Error('GitHub HTTP '+response.status+': '+String(detail).slice(0,220))}
-    return raw?JSON.parse(raw):null;
+(() => {
+  'use strict';
+  const REPO_FULL = 'David-Bryan010-png/Teste-de-IA-de-dura-o-at-dia-4-de-novembro-de-2026';
+  const [REPO_OWNER, REPO_NAME] = REPO_FULL.split('/');
+  const $ = id => document.getElementById(id);
+  const KEY = 'meva_v11_pat';
+  const CHAT = 'meva_v11_chat';
+  const WF = 'MEVA-INSTALADOR.yml';
+  let owner = REPO_OWNER, repo = REPO_NAME, branch = 'main', cid = '', busy = false, messages = [];
+
+  const say = (t, k='') => { $('status').textContent = t; $('status').className = 'status-bar ' + k; };
+  const loginSay = t => { $('loginStatus').textContent = t; };
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav.bottom button').forEach(b => b.classList.remove('active'));
+    const v = $('view-' + name);
+    if (v) v.classList.add('active');
+    const btn = document.querySelector(`nav.bottom button[data-view="${name}"]`);
+    if (btn) btn.classList.add('active');
   }
-  function render(){
-    const root=$('messages');root.replaceChildren();
-    if(!messages.length){const d=document.createElement('div');d.className='muted';d.textContent='Faça uma pergunta ou envie um projeto para a MEVA analisar.';root.append(d)}
-    for(const m of messages){const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'');const r=document.createElement('div');r.className='role';r.textContent=m.role==='user'?'VOCÊ':'MEVA';const c=document.createElement('div');c.textContent=m.content||'';d.append(r,c);root.append(d)}
-    root.scrollTop=root.scrollHeight;
+
+  document.querySelectorAll('nav.bottom button').forEach(btn => {
+    btn.addEventListener('click', () => showView(btn.dataset.view));
+  });
+
+  async function api(path, opt = {}) {
+    const token = sessionStorage.getItem(KEY);
+    if (!token) throw new Error('Sessão desconectada.');
+    const base = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    if (typeof path !== 'string' || !(path === base || path.startsWith(base + '/'))) {
+      throw new Error('Caminho da API fora do repositório.');
+    }
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      Authorization: 'Bearer ' + token,
+      ...(opt.body ? {'Content-Type': 'application/json'} : {})
+    };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 28000);
+    let response;
+    try {
+      response = await fetch('https://api.github.com' + path, {...opt, headers, signal: controller.signal, cache: 'no-store'});
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('Timeout na API do GitHub (28s).');
+      throw new Error('Falha de rede/CORS: ' + (e.message || 'desconhecido'));
+    } finally { clearTimeout(timer); }
+    if (response.status === 204) return null;
+    const raw = await response.text();
+    let data = null;
+    try { data = raw ? JSON.parse(raw) : null; } catch {}
+    if (!response.ok) {
+      const status = response.status;
+      const detail = (data && data.message) || raw || response.statusText || '';
+      if (status === 401) throw new Error('HTTP 401: token inválido ou expirado.');
+      if (status === 403) throw new Error('HTTP 403: permissão insuficiente. Verifique Actions e Contents. ' + detail.slice(0, 150));
+      if (status === 404) throw new Error('HTTP 404: repositório, workflow ou branch não encontrado.');
+      if (status === 422) throw new Error('HTTP 422: dados rejeitados. ' + detail.slice(0, 150));
+      if (status === 429) throw new Error('HTTP 429: rate limit. Tente mais tarde.');
+      throw new Error('GitHub HTTP ' + status + ': ' + detail.slice(0, 200));
+    }
+    return data;
   }
-  function decode64(v){const b=atob(String(v||'').replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
-  async function loadConversation(){
-    if(!valid(cid))return;try{const d=await api(parts()+'/contents/meva-data/conversations/'+cid+'.json?ref='+encodeURIComponent($('branch').value||branch));const o=JSON.parse(decode64(d.content));messages=Array.isArray(o.messages)?o.messages.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.content==='string'):[];render()}
-    catch(e){if(!String(e.message).startsWith('GitHub HTTP 404:'))throw e}
+
+  function render() {
+    const root = $('messages');
+    root.replaceChildren();
+    if (!messages.length) {
+      const d = document.createElement('div');
+      d.className = 'muted';
+      d.textContent = 'Envie uma tarefa ou pergunta para a MEVA CODE.';
+      root.append(d);
+      return;
+    }
+    for (const m of messages) {
+      const d = document.createElement('div');
+      d.className = 'bubble ' + (m.role === 'user' ? 'user' : 'assistant');
+      const r = document.createElement('div');
+      r.className = 'role';
+      r.textContent = m.role === 'user' ? 'VOCÊ' : 'MEVA';
+      const c = document.createElement('div');
+      c.textContent = m.content || '';
+      d.append(r, c);
+      root.append(d);
+    }
+    root.scrollTop = root.scrollHeight;
   }
-  async function connect(){
-    const info=await api(parts());owner=info.owner.login;repo=info.name;branch=info.default_branch||'main';$('repoInfo').textContent=owner+'/'+repo+' · branch padrão: '+branch;$('branch').value=new URLSearchParams(location.search).get('branch')||branch;
-    const q=new URLSearchParams(location.search).get('conversation');cid=valid(q)?q:(localStorage.getItem(CHAT)||crypto.randomUUID());localStorage.setItem(CHAT,cid);
-    $('runs').href='https://github.com/'+owner+'/'+repo+'/actions/workflows/'+WF;
-    $('connection').textContent='CONECTADA';$('connection').className='state ok';$('login').classList.add('hidden');$('workspace').classList.remove('hidden');
-    await loadConversation();
+
+  function decode64(v) {
+    const b = atob(String(v || '').replace(/\s/g, ''));
+    return new TextDecoder().decode(Uint8Array.from(b, c => c.charCodeAt(0)));
   }
-  $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const token=$('token').value.trim();if(!token)return;sessionStorage.setItem(KEY,token);try{await connect();$('token').value=''}catch(x){sessionStorage.removeItem(KEY);loginSay(x.message)}});
-  $('files').addEventListener('change',()=>{const f=[...$('files').files],total=f.reduce((a,b)=>a+b.size,0);$('fileInfo').textContent=f.map(x=>x.name+' · '+(x.size/1048576).toFixed(1)+' MB').join('\n')+'\nTotal: '+(total/1048576).toFixed(1)+' MB'+(f.length>MAX_FILES||f.some(x=>x.size>MAX_FILE)||total>MAX_TOTAL?'\nLIMITE EXCEDIDO':'')});
-  function safeName(name){const n=String(name||'arquivo.bin').normalize('NFKC');if(/(^\.env|id_rsa|id_ed25519|credentials|secret|token|private[_-]?key)/i.test(n))throw Error('Arquivo com nome potencialmente secreto bloqueado: '+name);const s=n.replace(/[\/\\]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100);if(!s||s==='.'||s==='..')throw Error('Nome de arquivo inválido.');return s}
-  async function upload(){
-    const files=[...$('files').files];if(!files.length)return '';if(files.length>MAX_FILES)throw Error('Máximo de 5 arquivos.');const total=files.reduce((a,b)=>a+b.size,0);if(total>MAX_TOTAL||files.some(f=>!f.size||f.size>MAX_FILE))throw Error('Limite: 200 MB por arquivo e 500 MB por envio.');
-    const release=await api(parts()+'/releases',{method:'POST',body:JSON.stringify({tag_name:'meva-v9-upload-'+cid+'-'+Date.now(),name:'MEVA V9 anexos',body:'Anexos temporários da conversa. Conteúdo público.',draft:false,prerelease:true})});
-    const base=release.upload_url.replace(/\{\?name,label\}$/,'');const assets=[];
-    for(let i=0;i<files.length;i++){const f=files[i],name=String(i+1).padStart(2,'0')+'-'+safeName(f.name);const response=await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('POST',base+'?name='+encodeURIComponent(name),true);x.setRequestHeader('Accept','application/vnd.github+json');x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));x.setRequestHeader('Content-Type',f.type||'application/octet-stream');x.upload.onprogress=e=>{if(e.lengthComputable)say('Enviando '+(i+1)+'/'+files.length+' · '+Math.round(e.loaded/e.total*100)+'%')};x.onload=()=>x.status>=200&&x.status<300?resolve(x.responseText):reject(Error('Upload HTTP '+x.status+': '+x.responseText.slice(0,180)));x.onerror=()=>reject(Error('Falha de rede/CORS no envio do anexo.'));x.send(f)});
-      const asset=JSON.parse(response);assets.push({name,size:f.size,url:asset.browser_download_url})}
+
+  async function loadConversation() {
+    if (!cid) return;
+    try {
+      const d = await api(`/repos/${owner}/${repo}/contents/meva-data/conversations/${cid}.json?ref=${encodeURIComponent($('branch').value || branch)}`);
+      const o = JSON.parse(decode64(d.content));
+      messages = Array.isArray(o.messages) ? o.messages.filter(x => x && ['user','assistant'].includes(x.role) && typeof x.content === 'string') : [];
+      render();
+    } catch (e) {
+      if (!String(e.message).includes('404')) throw e;
+    }
+  }
+
+  async function connect() {
+    const info = await api(`/repos/${owner}/${repo}`);
+    if (!info || String(info.owner.login).toLowerCase() !== owner.toLowerCase() || String(info.name).toLowerCase() !== repo.toLowerCase()) {
+      throw new Error('Repositório retornado não corresponde ao configurado.');
+    }
+    branch = info.default_branch || 'main';
+    $('branch').value = branch;
+    $('repoInfo').textContent = owner + '/' + repo + ' · ' + branch;
+    const params = new URLSearchParams(location.search);
+    const q = params.get('conversation');
+    const stored = localStorage.getItem(CHAT);
+    cid = (q && /^[A-Za-z0-9_-]{8,80}$/.test(q)) ? q : (stored && /^[A-Za-z0-9_-]{8,80}$/.test(stored) ? stored : crypto.randomUUID());
+    localStorage.setItem(CHAT, cid);
+    $('runsLink').href = `https://github.com/${owner}/${repo}/actions/workflows/${WF}`;
+    await loadConversation().catch(e => { messages = []; render(); say('Conectado, mas histórico indisponível: ' + e.message, 'err'); });
+    $('connDot').className = 'status-dot ok';
+    $('connText').textContent = 'Conectado';
+    showView('chat');
+    say('Conectado com sucesso.', 'ok');
+  }
+
+  $('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const token = $('token').value.trim();
+    if (!token) return;
+    sessionStorage.setItem(KEY, token);
+    try {
+      await connect();
+      $('token').value = '';
+    } catch (x) {
+      sessionStorage.removeItem(KEY);
+      loginSay(x.message);
+    }
+  });
+
+  $('files').addEventListener('change', () => {
+    const f = [...$('files').files];
+    const total = f.reduce((a, b) => a + b.size, 0);
+    $('fileInfo').textContent = f.map(x => x.name + ' · ' + (x.size/1048576).toFixed(1) + ' MB').join('\\n') + '\\nTotal: ' + (total/1048576).toFixed(1) + ' MB';
+  });
+
+  function safeName(name) {
+    const n = String(name || 'arquivo.bin').normalize('NFKC');
+    if (/(^\.env|id_rsa|credentials|secret|token|private)/i.test(n)) throw new Error('Nome de arquivo potencialmente sensível bloqueado.');
+    const s = n.replace(/[\\/]/g, '_').replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '').slice(0, 100);
+    if (!s || s === '.' || s === '..') throw new Error('Nome inválido.');
+    return s;
+  }
+
+  async function upload() {
+    const files = [...$('files').files];
+    if (!files.length) return '';
+    if (files.length > 5) throw new Error('Máximo 5 arquivos.');
+    const total = files.reduce((a, b) => a + b.size, 0);
+    if (total > 500 * 1024 * 1024 || files.some(f => !f.size || f.size > 200 * 1024 * 1024)) throw new Error('Limite de tamanho excedido.');
+    const release = await api(`/repos/${owner}/${repo}/releases`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tag_name: 'meva-v11-upload-' + cid + '-' + Date.now(),
+        name: 'MEVA V11 anexos',
+        body: 'Anexos temporários. Conteúdo público.',
+        draft: false,
+        prerelease: true
+      })
+    });
+    const base = release.upload_url.replace(/\{\?name,label\}$/, '');
+    const assets = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const name = String(i + 1).padStart(2, '0') + '-' + safeName(f.name);
+      const response = await new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open('POST', base + '?name=' + encodeURIComponent(name), true);
+        x.setRequestHeader('Accept', 'application/vnd.github+json');
+        x.setRequestHeader('Authorization', 'Bearer ' + sessionStorage.getItem(KEY));
+        x.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
+        x.onload = () => x.status >= 200 && x.status < 300 ? resolve(x.responseText) : reject(new Error('Upload HTTP ' + x.status));
+        x.onerror = () => reject(new Error('Falha de rede no upload.'));
+        x.send(f);
+      });
+      const asset = JSON.parse(response);
+      assets.push({ name, size: f.size, url: asset.browser_download_url });
+    }
     return JSON.stringify(assets);
   }
-  async function getRuns(){const d=await api(parts()+'/actions/workflows/'+WF+'/runs?event=workflow_dispatch&per_page=50');return d.workflow_runs||[]}
-  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  async function waitRun(before,started,selectedBranch){
-    const end=Date.now()+110*60*1000;let n=0;
-    while(Date.now()<end){const all=await getRuns();const r=all.find(x=>!before.has(x.id)&&x.head_branch===selectedBranch&&Date.parse(x.created_at)>=started-30000&&String(x.display_title||'').includes(cid));
-      if(r){const d=await api(parts()+'/actions/runs/'+r.id);say('MEVA · execução #'+r.run_number+' · '+d.status+(d.status==='completed'?' / '+d.conclusion:''));if(d.status==='completed'){if(d.conclusion!=='success')throw Error('Execução terminou em '+d.conclusion+'. Consulte os logs.');return}}
-      else say('Solicitação enviada; aguardando o runner…');n++;await sleep(n<10?2500:6000)}
-    throw Error('Tempo de espera excedido. A execução pode continuar no GitHub Actions; use Atualizar.');
+
+  async function getRuns() {
+    const d = await api(`/repos/${owner}/${repo}/actions/workflows/${WF}/runs?event=workflow_dispatch&per_page=30`);
+    return d.workflow_runs || [];
   }
-  $('composer').addEventListener('submit',async e=>{
-    e.preventDefault();if(busy)return;const message=$('message').value.trim(),files=[...$('files').files];if(!message&&!files.length)return;
-    const selectedBranch=$('branch').value.trim()||branch;if(!/^[A-Za-z0-9._/-]+$/.test(selectedBranch)||selectedBranch.includes('..'))return say('Branch inválida.','err');
-    busy=true;$('send').disabled=true;const started=Date.now();
-    try{const before=new Set((await getRuns()).map(x=>x.id));say(files.length?'Preparando anexos…':'Iniciando MEVA…');const attachments=await upload();const mode=files.length?'agent':$('mode').value;const task=message||'Inspecione os anexos, identifique o projeto e descreva a estrutura e o conteúdo.';
-      messages.push({role:'user',content:task});render();$('message').value='';$('files').value='';$('fileInfo').textContent='Anexos enviados.';
-      await api(parts()+'/actions/workflows/'+WF+'/dispatches',{method:'POST',body:JSON.stringify({ref:selectedBranch,inputs:{mode,message:task,conversation_id:cid,branch:selectedBranch,max_actions:'30',attachments}})});
-      await waitRun(before,started,selectedBranch);await loadConversation();say('Resposta recebida.','ok');
-    }catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}finally{busy=false;$('send').disabled=false}
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function waitRun(before, started, selectedBranch) {
+    const end = Date.now() + 100 * 60 * 1000;
+    let n = 0;
+    while (Date.now() < end) {
+      const all = await getRuns();
+      const r = all.find(x => !before.has(x.id) && x.head_branch === selectedBranch && Date.parse(x.created_at) >= started - 30000 && String(x.display_title || '').includes(cid));
+      if (r) {
+        const d = await api(`/repos/${owner}/${repo}/actions/runs/${r.id}`);
+        say('Execução #' + r.run_number + ' · ' + d.status + (d.status === 'completed' ? ' / ' + d.conclusion : ''));
+        if (d.status === 'completed') {
+          if (d.conclusion !== 'success') throw new Error('Execução terminou em ' + d.conclusion);
+          return;
+        }
+      } else {
+        say('Aguardando runner...');
+      }
+      n++;
+      await sleep(n < 8 ? 2500 : 7000);
+    }
+    throw new Error('Tempo de espera excedido. Verifique as execuções no GitHub.');
+  }
+
+  $('composer').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (busy) return;
+    const message = $('message').value.trim();
+    const files = [...$('files').files];
+    if (!message && !files.length) return;
+    const selectedBranch = $('branch').value.trim() || branch;
+    if (!/^[A-Za-z0-9._/-]+$/.test(selectedBranch) || selectedBranch.includes('..')) return say('Branch inválida.', 'err');
+    busy = true;
+    $('send').disabled = true;
+    const started = Date.now();
+    try {
+      const before = new Set((await getRuns()).map(x => x.id));
+      say(files.length ? 'Preparando anexos...' : 'Iniciando MEVA...');
+      const attachments = await upload();
+      const mode = files.length ? 'agent' : $('mode').value;
+      const task = message || 'Inspecione os anexos e descreva a estrutura.';
+      messages.push({ role: 'user', content: task });
+      render();
+      $('message').value = '';
+      $('files').value = '';
+      $('fileInfo').textContent = 'Anexos enviados.';
+      await api(`/repos/${owner}/${repo}/actions/workflows/${WF}/dispatches`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: selectedBranch,
+          inputs: {
+            mode,
+            message: task,
+            conversation_id: cid,
+            branch: selectedBranch,
+            max_actions: '30',
+            attachments,
+            autonomy: $('autonomy').value,
+            model_provider: $('provider').value
+          }
+        })
+      });
+      await waitRun(before, started, selectedBranch);
+      await loadConversation();
+      say('Resposta recebida.', 'ok');
+    } catch (x) {
+      say(x.message, 'err');
+      await loadConversation().catch(() => {});
+    } finally {
+      busy = false;
+      $('send').disabled = false;
+    }
   });
-  $('newChat').onclick=()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location.href);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();say('Nova conversa criada.')};
-  $('refresh').onclick=()=>loadConversation().then(()=>say('Histórico atualizado.','ok')).catch(e=>say(e.message,'err'));
-  $('share').onclick=async()=>{const u=new URL(location.href);u.searchParams.set('conversation',cid);u.searchParams.set('branch',$('branch').value||branch);try{await navigator.clipboard.writeText(u.href);say('Link copiado.','ok')}catch(_){say(u.href)}};
-  $('logout').onclick=()=>{sessionStorage.removeItem(KEY);location.reload()};
-  $('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('composer').requestSubmit()}});
-  if(sessionStorage.getItem(KEY)){const p=location.hostname.endsWith('.github.io')?location.hostname.replace('.github.io','')+'/'+(location.pathname.split('/').filter(Boolean)[0]||''):'';if(p){[owner,repo]=p.split('/');connect().catch(e=>{sessionStorage.removeItem(KEY);loginSay(e.message)})}}
+
+  $('newChat').onclick = () => {
+    cid = crypto.randomUUID();
+    localStorage.setItem(CHAT, cid);
+    messages = [];
+    const u = new URL(location.href);
+    u.searchParams.set('conversation', cid);
+    history.replaceState({}, '', u);
+    render();
+    say('Nova conversa criada.');
+  };
+
+  $('logout').onclick = () => {
+    sessionStorage.removeItem(KEY);
+    location.reload();
+  };
+
+  $('refreshFiles').onclick = async () => {
+    try {
+      const data = await api(`/repos/${owner}/${repo}/git/trees/${encodeURIComponent($('branch').value || branch)}?recursive=1`);
+      const list = (data.tree || []).filter(x => x.type === 'blob').slice(0, 200).map(x => x.path);
+      $('fileList').innerHTML = list.map(p => '<div>' + p + '</div>').join('') || 'Nenhum arquivo.';
+    } catch (e) {
+      $('fileList').textContent = 'Erro: ' + e.message;
+    }
+  };
+
+  $('message').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      $('composer').requestSubmit();
+    }
+  });
+
+  if (sessionStorage.getItem(KEY)) {
+    connect().catch(e => {
+      sessionStorage.removeItem(KEY);
+      $('connDot').className = 'status-dot';
+      $('connText').textContent = 'Falha';
+      loginSay(e.message);
+      showView('login');
+    });
+  }
 })();
 </script>
-</body></html>
+</body>
+</html>
