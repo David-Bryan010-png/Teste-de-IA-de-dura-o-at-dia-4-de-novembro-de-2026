@@ -1,0 +1,19 @@
+{
+  "id": "63c98ecc-e26f-4bea-9fc1-b066f1e37687",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Qual o seu modelo?",
+      "created_at": "2026-11-08T01:46:38Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Sou MEVA CODE V11, um agente de programação autônomo de alto nível.\n\nStatus git (parcial): sem alterações detectadas.",
+      "created_at": "2026-11-08T01:46:38Z"
+    }
+  ],
+  "updated_at": "2026-11-08T01:46:38Z",
+  "model": "Qwen2.5-Coder-3B-Instruct-Q4_K_M",
+  "provider": "local",
+  "autonomy": "auto"
+}
