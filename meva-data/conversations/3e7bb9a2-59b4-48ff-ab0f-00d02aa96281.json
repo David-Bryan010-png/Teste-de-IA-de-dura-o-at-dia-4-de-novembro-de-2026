@@ -26,6 +26,14 @@
     {
       "role": "assistant",
       "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: build-xex-from-zip.yml"
+    },
+    {
+      "role": "user",
+      "content": "Então compile o projeto!"
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: build-xex-from-zip.yml"
     }
   ],
   "source_archive": null,
@@ -48,11 +56,11 @@
   "project_loaded_at": "2026-11-09T18:42:35Z",
   "project_loaded": true,
   "project_file_count": 236,
-  "updated_at": "2026-11-09T20:49:42Z",
+  "updated_at": "2026-11-09T20:52:07Z",
   "provider": "",
   "autonomy": "auto",
   "allow_build": true,
-  "mode": "linux_zip",
+  "mode": "agent",
   "status": "failed",
   "last_error": "RuntimeError: Bloco não pertence ao commit do upload: build-xex-from-zip.yml",
   "pending_upload": {
