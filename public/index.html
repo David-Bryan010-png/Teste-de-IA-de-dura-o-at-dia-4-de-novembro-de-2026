@@ -4,310 +4,111 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a0f1a">
-  <title>MEVA CODE V11</title>
+  <title>MEVA CODE V13</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <style>
-    :root{color-scheme:dark;--bg:#0a0f1a;--panel:#121a2b;--border:#2a3a55;--text:#e8f0ff;--muted:#8aa0c0;--accent:#5b9cff;--ok:#4ade80;--err:#f87171;font-family:system-ui,sans-serif}
+    :root{color-scheme:dark;--bg:#090e18;--panel:#121b2c;--border:#2a3a55;--text:#e8f0ff;--muted:#91a3bf;--accent:#5b9cff;--ok:#4ade80;--err:#fb7185;--warn:#fbbf24;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden}
-    .app{display:flex;flex-direction:column;height:100dvh;max-width:540px;margin:0 auto}
-    header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
-    .brand{font-weight:800;font-size:15px}
-    main{flex:1;overflow:auto;padding:12px}
-    .view{display:none}.view.active{display:block}
-    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
-    h1,h2{margin:0 0 8px;font-size:17px}
-    .muted{color:var(--muted);font-size:13px}
-    label{display:block;font-size:12px;margin:10px 0 4px;color:var(--muted)}
-    input,textarea,select,button{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#0d1525;color:var(--text);font:inherit;font-size:15px}
-    button{background:#1a2740;font-weight:600;cursor:pointer}
-    button.primary{background:linear-gradient(135deg,#5b9cff,#3b82f6);color:#fff;border:0}
-    .messages{height:46vh;min-height:200px;overflow-y:auto;padding:8px;background:#0d1525;border-radius:12px;border:1px solid var(--border);margin:8px 0}
-    .bubble{max-width:92%;padding:10px 12px;border-radius:12px;margin:6px 0;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-    .bubble.user{background:#1e3a5f;margin-left:auto}
-    .bubble.assistant{background:#162033}
-    nav{display:flex;border-top:1px solid var(--border);background:var(--panel);flex-shrink:0}
-    nav button{flex:1;padding:13px 4px;background:transparent;border:0;border-radius:0;font-size:11px;color:var(--muted)}
-    nav button.active{color:var(--accent);font-weight:700}
-    .status{font-size:12px;color:var(--muted);min-height:16px}
-    .status.ok{color:var(--ok)}.status.err{color:var(--err)}
-    .warning{background:#2a2210;border:1px solid #66552f;color:#e7d5aa;padding:10px;border-radius:10px;font-size:12px;margin-top:10px}
-    .convo-list div{padding:10px;border-bottom:1px solid var(--border);cursor:pointer}
-    .convo-list div:active{background:#1a2740}
-    @media(min-width:700px){.app{max-width:920px}.messages{height:58vh}}
+    .app{display:flex;flex-direction:column;height:100dvh;max-width:620px;margin:0 auto}header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+    .brand{font-weight:850;letter-spacing:.2px;font-size:15px}main{flex:1;overflow:auto;padding:12px}.view{display:none}.view.active{display:block}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:15px;padding:14px;margin-bottom:12px}h1,h2{font-size:17px;margin:0 0 9px}
+    .muted{color:var(--muted);font-size:12px;line-height:1.45}label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
+    input,textarea,select,button{font:inherit;color:var(--text);background:#0c1423;border:1px solid var(--border);border-radius:10px;padding:12px;width:100%;font-size:14px}
+    button{background:#1b2943;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}button.primary{background:linear-gradient(135deg,#5b9cff,#3978ed);border:0;color:white}
+    .row{display:flex;gap:8px}.row>*{min-width:0;flex:1}.messages{height:38vh;min-height:190px;max-height:520px;overflow:auto;padding:8px;background:#0c1423;border:1px solid var(--border);border-radius:12px;margin:9px 0}
+    .bubble{max-width:96%;padding:10px 12px;border-radius:12px;margin:6px 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.user{background:#1e3a5f;margin-left:auto}.bubble.assistant{background:#172338}
+    nav{display:flex;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0}nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px;padding:13px 3px}nav button.active{color:var(--accent)}
+    .status{font-size:12px;color:var(--muted);min-height:18px;margin-top:8px}.status.ok{color:var(--ok)}.status.err{color:var(--err)}
+    .warning{border:1px solid #705b2c;background:#2a2211;color:#f4dda6;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;margin-top:10px}
+    .good{border:1px solid #285c45;background:#10271e;color:#a7f3d0;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;margin-top:10px}
+    .progress{height:7px;background:#26334a;border-radius:20px;overflow:hidden;margin-top:8px}.progress>div{height:100%;width:0;background:var(--accent);transition:width .15s}
+    .fileinfo{font-size:12px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}.convo div,.file-row{padding:10px 2px;border-bottom:1px solid var(--border);font-size:12px;overflow-wrap:anywhere}
+    .dl a,.link{color:#8bbcff;text-decoration:none}.checkrow{display:flex;align-items:center;gap:9px;margin-top:11px}.checkrow input{width:19px;height:19px;flex:0 0 auto}.checkrow label{margin:0;color:var(--text);font-size:12px}
+    @media(min-width:750px){.app{max-width:950px}.messages{height:50vh}}
   </style>
 </head>
 <body>
 <div class="app">
-  <header>
-    <div class="brand">◆ MEVA CODE V11</div>
-    <div id="conn">Desconectado</div>
-  </header>
+  <header><div class="brand">◆ MEVA CODE V13</div><div id="connection" class="muted">Desconectado</div></header>
   <main>
     <section id="view-login" class="view active">
       <div class="panel">
-        <h1>Conectar</h1>
-        <p class="muted">Fine-grained PAT: Actions (Read+Write), Contents (Read+Write), Metadata (Read).</p>
-        <form id="loginForm">
-          <label>Token</label>
-          <input id="token" type="password" autocomplete="off" required>
-          <button class="primary" type="submit" style="margin-top:10px">Conectar</button>
-        </form>
+        <h1>Conectar ao GitHub</h1>
+        <p class="muted">Use um Fine-grained Personal Access Token do repositório: Contents (Read and write), Actions (Read and write) e Metadata (Read).</p>
+        <form id="loginForm"><label>GitHub token</label><input id="token" type="password" autocomplete="off" required><button class="primary" type="submit" style="margin-top:10px">Conectar</button></form>
         <div id="loginStatus" class="status"></div>
-        <div class="warning">Repositório público. Não envie segredos.</div>
+        <div class="warning">Privacidade: em repositório público, qualquer ZIP enviado para Releases poderá ser baixado por qualquer pessoa. Para código privado, use um repositório privado. Nunca cole sua chave NVIDIA nesta tela, no YAML ou em mensagens.</div>
       </div>
     </section>
     <section id="view-chat" class="view">
       <div class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <h2>Conversa</h2>
-          <button id="newChat" style="width:auto;padding:8px 12px">＋ Nova</button>
-        </div>
-        <div id="repoInfo" class="muted" style="margin:6px 0"></div>
+        <div class="row" style="align-items:center;justify-content:space-between"><h2>Agente de engenharia Linux</h2><button id="newChat" style="width:auto;padding:8px 11px">＋ Nova</button></div>
+        <div id="repoInfo" class="muted"></div>
         <div id="messages" class="messages"></div>
         <form id="composer">
-          <input id="files" type="file" multiple>
-          <div id="fileInfo" class="muted" style="font-size:12px;margin:4px 0">Até 5 arquivos</div>
-          <textarea id="message" rows="3" placeholder="Tarefa ou pergunta…"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <select id="mode"><option value="chat">Chat</option><option value="agent">Agente</option></select>
-            <select id="autonomy"><option value="ask">Ask</option><option value="safe">Safe</option><option value="auto">Auto</option></select>
-          </div>
-          <button class="primary" id="send" type="submit" style="margin-top:8px">Enviar</button>
+          <label>ZIP do Linux / projeto</label>
+          <input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed">
+          <div id="fileInfo" class="fileinfo">Selecione um ZIP para importar ou continue uma conversa anterior.</div>
+          <div class="progress"><div id="uploadProgress"></div></div>
+          <textarea id="message" rows="3" placeholder="Ex.: Analise e corrija o boot, drivers, vídeo, controle e build do meu Linux para Xbox 360…"></textarea>
+          <div class="row"><select id="mode"><option value="agent">Agente</option><option value="chat">Chat</option><option value="resume">Retomar tarefa</option></select><select id="autonomy"><option value="auto" selected>Auto · pode editar</option><option value="ask">Ask · somente plano</option><option value="safe">Safe · somente leitura</option></select></div>
+          <label>Modelo de IA</label>
+          <select id="provider"><option value="auto">Auto · NVIDIA primeiro</option><option value="nvidia">NVIDIA Nemotron 3 Ultra</option><option value="claude">Claude</option><option value="openai">OpenAI</option><option value="xai">Grok / xAI</option></select>
+          <div class="checkrow"><input id="allowBuild" type="checkbox"><label for="allowBuild">Permitir compilação, testes e comandos de build no projeto enviado</label></div>
+          <label>Limite de ações</label><select id="maxActions"><option value="30">30 · econômico</option><option value="60" selected>60 · recomendado</option><option value="80">80 · tarefa extensa</option></select>
+          <button class="primary" id="send" type="submit" style="margin-top:11px">Enviar para o MEVA</button>
         </form>
-        <div id="status" class="status">Pronta.</div>
-        <div id="downloadArea" style="margin-top:8px"></div>
+        <div id="status" class="status">Pronto.</div><div id="downloadArea" class="dl"></div>
+        <div class="good">O MEVA pode importar o ZIP, mapear o projeto, editar código/configurações, criar e remover arquivos, executar verificações e devolver um ZIP completo atualizado com relatório e diferenças.</div>
       </div>
     </section>
-    <section id="view-convos" class="view">
-      <div class="panel">
-        <h2>Conversas</h2>
-        <div id="convoList" class="convo-list">Carregando…</div>
-        <button id="refreshConvos" style="margin-top:10px">Atualizar</button>
-      </div>
-    </section>
-    <section id="view-files" class="view">
-      <div class="panel">
-        <h2>Arquivos</h2>
-        <div id="fileList" class="muted">Conecte-se.</div>
-        <button id="refreshFiles" style="margin-top:10px">Atualizar</button>
-      </div>
-    </section>
-    <section id="view-settings" class="view">
-      <div class="panel">
-        <h2>Ajustes</h2>
-        <label>Branch</label><input id="branch" value="main">
-        <label>Provedor</label>
-        <select id="provider">
-          <option value="local">Local (Qwen)</option>
-          <option value="openai">OpenAI</option>
-          <option value="xai">xAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-        <button id="logout" style="margin-top:14px;background:#3a1a1a">Desconectar</button>
-      </div>
-    </section>
+    <section id="view-convos" class="view"><div class="panel"><h2>Conversas</h2><div id="convoList" class="convo">Carregando…</div><button id="refreshConvos" style="margin-top:10px">Atualizar</button></div></section>
+    <section id="view-files" class="view"><div class="panel"><h2>Arquivos do repositório MEVA</h2><div id="fileList" class="muted">Conecte-se.</div><button id="refreshFiles" style="margin-top:10px">Atualizar</button></div></section>
+    <section id="view-settings" class="view"><div class="panel"><h2>Configurações</h2><label>Branch</label><input id="branch" value="main"><p class="muted">Configure as chaves em Settings → Secrets and variables → Actions. Nome da chave NVIDIA: NVIDIA_API_KEY.</p><p><a id="secretLink" class="link" href="#" target="_blank" rel="noopener">Abrir GitHub Secrets</a></p><button id="logout" style="background:#3a1a1a">Desconectar</button></div></section>
   </main>
-  <nav>
-    <button data-view="chat">💬 Chat</button>
-    <button data-view="convos">📋 Conversas</button>
-    <button data-view="files">📁 Arquivos</button>
-    <button data-view="settings">⚙️</button>
-  </nav>
+  <nav><button data-view="chat">◉ Agente</button><button data-view="convos">▤ Conversas</button><button data-view="files">▣ Repo</button><button data-view="settings">⚙ Ajustes</button></nav>
 </div>
 <script>
 (()=>{
   'use strict';
   const REPO_FULL='David-Bryan010-png/Teste-de-IA-de-dura-o-at-dia-4-de-novembro-de-2026';
   const [owner,repo]=REPO_FULL.split('/');
-  const $=id=>document.getElementById(id);
-  const KEY='meva_v11_pat',CHAT='meva_v11_chat',WF='MEVA-INSTALADOR.yml';
-  let branch='main',cid='',busy=false,messages=[];
-
-  const say=(t,k='')=>{$('status').textContent=t;$('status').className='status '+k};
-  function show(v){
-    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    const el=$('view-'+v);if(el)el.classList.add('active');
-    const btn=document.querySelector(`nav button[data-view="${v}"]`);if(btn)btn.classList.add('active');
-  }
-  document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
-
+  const $=id=>document.getElementById(id),KEY='meva_v13_pat',CHAT='meva_v13_chat',WF='MEVA-INSTALADOR.yml';
+  let branch='main',cid='',busy=false,messages=[],isPrivate=false;
+  const say=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.querySelectorAll('nav button').forEach(e=>e.classList.remove('active'));$('view-'+v).classList.add('active');const b=document.querySelector(`nav button[data-view="${v}"]`);if(b)b.classList.add('active')}
+  document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
   async function api(path,opt={}){
     const token=sessionStorage.getItem(KEY);if(!token)throw Error('Desconectado.');
-    const base=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-    if(!path.startsWith(base))throw Error('Caminho inválido.');
-    const headers={Accept:'application/vnd.github+json',Authorization:'Bearer '+token,...(opt.body?{'Content-Type':'application/json'}:{})};
-    const c=new AbortController();const t=setTimeout(()=>c.abort(),26000);
-    let r;
-    try{r=await fetch('https://api.github.com'+path,{...opt,headers,signal:c.signal,cache:'no-store'})}
-    catch(e){if(e.name==='AbortError')throw Error('Timeout API.');throw Error('Rede/CORS: '+(e.message||''))}
-    finally{clearTimeout(t)}
-    if(r.status===204)return null;
-    const raw=await r.text();let data=null;try{data=raw?JSON.parse(raw):null}catch{}
-    if(!r.ok){
-      const d=(data&&data.message)||raw||'';
-      if(r.status===401)throw Error('401: token inválido.');
-      if(r.status===403)throw Error('403: permissão. '+d.slice(0,120));
-      if(r.status===404)throw Error('404: não encontrado.');
-      throw Error('HTTP '+r.status+': '+d.slice(0,180));
-    }
-    return data;
+    const prefix=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    if(typeof path!=='string'||!path.startsWith(prefix))throw Error('Caminho de API inválido.');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);let r;
+    try{r=await fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{}),...(opt.headers||{})},signal:controller.signal,cache:'no-store'})}
+    catch(e){if(e.name==='AbortError')throw Error('Tempo esgotado no GitHub.');throw Error('Falha de rede/CORS: '+(e.message||''))}finally{clearTimeout(timer)}
+    if(r.status===204)return null;const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
+    if(!r.ok){const detail=(d&&d.message)||raw||'';if(r.status===401)throw Error('Token GitHub inválido ou expirado.');if(r.status===403)throw Error('GitHub 403: permissão ou limite de API. '+String(detail).slice(0,150));if(r.status===404)throw Error('Não encontrado. Confira o nome do workflow e o repositório.');throw Error('GitHub HTTP '+r.status+': '+String(detail).slice(0,200))}return d;
   }
-
-  function render(){
-    const root=$('messages');root.replaceChildren();
-    if(!messages.length){const d=document.createElement('div');d.className='muted';d.textContent='Envie uma tarefa.';root.append(d);return}
-    for(const m of messages){
-      const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'assistant');
-      d.textContent=(m.role==='user'?'VOCÊ: ':'MEVA: ')+(m.content||'');
-      root.append(d);
-    }
-    root.scrollTop=root.scrollHeight;
+  function render(){const root=$('messages');root.replaceChildren();if(!messages.length){const d=document.createElement('div');d.className='muted';d.textContent='Envie um ZIP ou descreva o que deseja fazer.';root.append(d);return}for(const m of messages){const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'assistant');d.textContent=(m.role==='user'?'VOCÊ: ':'MEVA: ')+(m.content||'');root.append(d)}root.scrollTop=root.scrollHeight}
+  function decode64(v){const raw=atob(String(v||'').replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0)))}
+  function safeReleaseUrl(v){try{const u=new URL(v);return u.protocol==='https:'&&u.hostname==='github.com'&&u.pathname.startsWith('/'+owner+'/'+repo+'/releases/')?u.href:null}catch{return null}}
+  async function loadConversation(){if(!cid)return;try{const p=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations/${encodeURIComponent(cid)}.json?ref=${encodeURIComponent($('branch').value||branch)}`;const d=await api(p),o=JSON.parse(decode64(d.content));messages=Array.isArray(o.messages)?o.messages.filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-50):[];render();$('downloadArea').replaceChildren();const url=safeReleaseUrl(o.last_release);if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.className='link';a.textContent='⬇ Baixar ZIP Linux atualizado + relatório';$('downloadArea').append(a)}}catch(e){if(!String(e.message).includes('Não encontrado'))throw e;messages=[];render();$('downloadArea').replaceChildren()}}
+  async function connect(){const info=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);if(info.name.toLowerCase()!==repo.toLowerCase()||info.owner.login.toLowerCase()!==owner.toLowerCase())throw Error('Repositório divergente.');isPrivate=Boolean(info.private);branch=info.default_branch||'main';$('branch').value=branch;$('repoInfo').textContent=owner+'/'+repo+' · '+branch+' · '+(isPrivate?'Privado':'Público');$('secretLink').href=`https://github.com/${owner}/${repo}/settings/secrets/actions`;const q=new URLSearchParams(location.search).get('conversation'),stored=localStorage.getItem(CHAT);cid=(q&&/^[A-Za-z0-9_-]{8,80}$/.test(q))?q:(stored&&/^[A-Za-z0-9_-]{8,80}$/.test(stored)?stored:crypto.randomUUID());localStorage.setItem(CHAT,cid);await loadConversation();$('connection').textContent='Conectado';show('chat');say('Conectado ao GitHub.','ok')}
+  $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const t=$('token').value.trim();if(!t)return;sessionStorage.setItem(KEY,t);$('loginStatus').textContent='Verificando…';try{await connect();$('token').value='';$('loginStatus').textContent=''}catch(x){sessionStorage.removeItem(KEY);$('loginStatus').textContent=x.message}});
+  $('zipFile').addEventListener('change',()=>{const f=$('zipFile').files[0];if(!f){$('fileInfo').textContent='Selecione um ZIP para importar ou continue uma conversa anterior.';return}const mb=f.size/1048576;$('fileInfo').textContent=f.name+' · '+mb.toFixed(1)+' MB'+(mb>1800?' · acima do limite':'');if(!f.name.toLowerCase().endsWith('.zip'))say('Envie um arquivo .zip.','err');else if(f.size>1800*1024*1024)say('O limite por ZIP é 1,8 GB.','err');else say('ZIP pronto para envio.','ok')});
+  function safeName(n){n=String(n||'linux.zip').normalize('NFKC');if(/(^|[._-])(env|id_rsa|id_ed25519|secret|token|credential|private)([._-]|$)/i.test(n))throw Error('Nome de arquivo sensível bloqueado.');return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100)||'linux.zip'}
+  async function uploadZip(){const f=$('zipFile').files[0];if(!f)return '';if(!f.name.toLowerCase().endsWith('.zip'))throw Error('O arquivo precisa terminar em .zip.');if(f.size<=0||f.size>1800*1024*1024)throw Error('Limite do ZIP: 1,8 GB.');if(!isPrivate&&!confirm('Este repositório é PÚBLICO. O ZIP será publicado em um GitHub Release e poderá ser baixado por qualquer pessoa. Continue somente se o arquivo puder ser público.'))throw Error('Upload cancelado para proteger a privacidade.');
+    say('Criando área de upload…');const tag='meva-v13-up-'+cid+'-'+Date.now();const rel=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases`,{method:'POST',body:JSON.stringify({tag_name:tag,name:'MEVA V13 — projeto Linux enviado',body:'Arquivo de entrada enviado pelo proprietário do repositório.',draft:false,prerelease:true})});const base=String(rel.upload_url||'').replace(/\{\?name,label\}$/,'');if(!base.startsWith('https://uploads.github.com/'))throw Error('Endpoint de upload do GitHub inválido.');const name=safeName(f.name),url=base+'?name='+encodeURIComponent(name);say('Enviando ZIP: 0%');const asset=await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('POST',url);x.timeout=30*60*1000;x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));x.setRequestHeader('Accept','application/vnd.github+json');x.setRequestHeader('Content-Type','application/zip');x.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadProgress').style.width=p+'%';say('Enviando ZIP: '+p+'%')}};x.onload=()=>{let d;try{d=JSON.parse(x.responseText)}catch{}if(x.status>=200&&x.status<300&&d&&d.id)resolve(d);else reject(Error('Falha ao enviar ZIP: HTTP '+x.status+' '+(d&&d.message||'')))};x.onerror=()=>reject(Error('Conexão interrompida no upload.'));x.ontimeout=()=>reject(Error('Upload excedeu 30 minutos.'));x.send(f)});return JSON.stringify({release_id:rel.id,tag_name:tag,assets:[{asset_id:asset.id,name:asset.name,size:asset.size,content_type:asset.content_type}]});
   }
-
-  function decode64(v){const b=atob(String(v||'').replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
-
-  async function loadConversation(){
-    if(!cid)return;
-    try{
-      const d=await api(`/repos/${owner}/${repo}/contents/meva-data/conversations/${cid}.json?ref=${encodeURIComponent($('branch').value||branch)}`);
-      const o=JSON.parse(decode64(d.content));
-      messages=Array.isArray(o.messages)?o.messages.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.content==='string'):[];
-      render();
-      if(o.last_release){
-        $('downloadArea').innerHTML=`<a href="${o.last_release}" target="_blank" style="color:var(--accent)">⬇ Baixar resultado da última execução</a>`;
-      }
-    }catch(e){if(!String(e.message).includes('404'))throw e}
-  }
-
-  async function loadConvos(){
-    try{
-      const d=await api(`/repos/${owner}/${repo}/contents/meva-data/conversations?ref=${encodeURIComponent($('branch').value||branch)}`);
-      const list=(d||[]).filter(x=>x.name.endsWith('.json')).map(x=>x.name.replace('.json','')).slice(-30).reverse();
-      $('convoList').innerHTML=list.map(id=>`<div data-id="${id}">${id.slice(0,8)}…</div>`).join('')||'Nenhuma.';
-      $('convoList').querySelectorAll('div').forEach(el=>el.onclick=()=>{cid=el.dataset.id;localStorage.setItem(CHAT,cid);loadConversation();show('chat')});
-    }catch(e){$('convoList').textContent='Erro: '+e.message}
-  }
-
-  async function connect(){
-    const info=await api(`/repos/${owner}/${repo}`);
-    if(String(info.owner.login).toLowerCase()!==owner.toLowerCase()||String(info.name).toLowerCase()!==repo.toLowerCase())throw Error('Repo divergente.');
-    branch=info.default_branch||'main';$('branch').value=branch;
-    $('repoInfo').textContent=owner+'/'+repo+' · '+branch;
-    const params=new URLSearchParams(location.search);
-    const q=params.get('conversation'),stored=localStorage.getItem(CHAT);
-    cid=(q&&/^[A-Za-z0-9_-]{8,80}$/.test(q))?q:(stored&&/^[A-Za-z0-9_-]{8,80}$/.test(stored)?stored:crypto.randomUUID());
-    localStorage.setItem(CHAT,cid);
-    await loadConversation().catch(()=>{messages=[];render()});
-    $('conn').textContent='Conectado';show('chat');say('Conectado.','ok');
-  }
-
-  $('loginForm').onsubmit=async e=>{
-    e.preventDefault();
-    const t=$('token').value.trim();if(!t)return;
-    sessionStorage.setItem(KEY,t);
-    try{await connect();$('token').value=''}catch(x){sessionStorage.removeItem(KEY);$('loginStatus').textContent=x.message}
-  };
-
-  $('files').onchange=()=>{
-    const f=[...$('files').files];
-    $('fileInfo').textContent=f.map(x=>x.name+' · '+(x.size/1e6).toFixed(1)+'MB').join(', ')||'Nenhum.';
-  };
-
-  function safeName(n){
-    n=String(n||'f.bin').normalize('NFKC');
-    if(/(\.env|id_rsa|secret|token|credential|private)/i.test(n))throw Error('Nome sensível bloqueado.');
-    return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,90)||'file.bin';
-  }
-
-  async function upload(){
-    const files=[...$('files').files];if(!files.length)return'';
-    if(files.length>5)throw Error('Máx 5 arquivos.');
-    const total=files.reduce((a,b)=>a+b.size,0);
-    if(total>500e6||files.some(f=>f.size>200e6))throw Error('Tamanho excedido.');
-    const rel=await api(`/repos/${owner}/${repo}/releases`,{method:'POST',body:JSON.stringify({
-      tag_name:'meva-v11-up-'+cid+'-'+Date.now(),name:'Anexos MEVA',body:'Temporário. Público.',draft:false,prerelease:true
-    })});
-    const base=rel.upload_url.replace(/\{\?name,label\}$/,'');
-    const assets=[];
-    for(let i=0;i<files.length;i++){
-      const f=files[i],name=String(i+1).padStart(2,'0')+'-'+safeName(f.name);
-      const resp=await new Promise((res,rej)=>{
-        const x=new XMLHttpRequest();
-        x.open('POST',base+'?name='+encodeURIComponent(name));
-        x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));
-        x.setRequestHeader('Content-Type',f.type||'application/octet-stream');
-        x.onload=()=>x.status<300?res(x.responseText):rej(Error('Upload '+x.status));
-        x.onerror=()=>rej(Error('Rede upload'));
-        x.send(f);
-      });
-      assets.push({name,size:f.size,url:JSON.parse(resp).browser_download_url});
-    }
-    return JSON.stringify(assets);
-  }
-
-  async function getRuns(){
-    const d=await api(`/repos/${owner}/${repo}/actions/workflows/${WF}/runs?event=workflow_dispatch&per_page=25`);
-    return d.workflow_runs||[];
-  }
-  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
-  async function waitRun(before,started,br){
-    const end=Date.now()+95*60*1000;let n=0;
-    while(Date.now()<end){
-      const all=await getRuns();
-      const r=all.find(x=>!before.has(x.id)&&x.head_branch===br&&Date.parse(x.created_at)>=started-40000&&String(x.display_title||'').includes(cid));
-      if(r){
-        const d=await api(`/repos/${owner}/${repo}/actions/runs/${r.id}`);
-        say('#'+r.run_number+' · '+d.status+(d.status==='completed'?' / '+d.conclusion:''));
-        if(d.status==='completed'){
-          if(d.conclusion!=='success')throw Error('Falhou: '+d.conclusion);
-          return;
-        }
-      }else say('Aguardando runner…');
-      n++;await sleep(n<6?2200:6500);
-    }
-    throw Error('Timeout. Verifique Actions.');
-  }
-
-  $('composer').onsubmit=async e=>{
-    e.preventDefault();if(busy)return;
-    const msg=$('message').value.trim(),files=[...$('files').files];
-    if(!msg&&!files.length)return;
-    const br=$('branch').value.trim()||branch;
-    if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..'))return say('Branch inválida.','err');
-    busy=true;$('send').disabled=true;const started=Date.now();
-    try{
-      const before=new Set((await getRuns()).map(x=>x.id));
-      say(files.length?'Enviando anexos…':'Iniciando…');
-      const att=await upload();
-      const mode=files.length?'agent':$('mode').value;
-      const task=msg||'Analise os anexos.';
-      messages.push({role:'user',content:task});render();
-      $('message').value='';$('files').value='';$('fileInfo').textContent='Enviado.';
-      await api(`/repos/${owner}/${repo}/actions/workflows/${WF}/dispatches`,{method:'POST',body:JSON.stringify({
-        ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:'32',attachments:att,autonomy:$('autonomy').value,model_provider:$('provider').value}
-      })});
-      await waitRun(before,started,br);
-      await loadConversation();
-      say('Pronto.','ok');
-    }catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}
-    finally{busy=false;$('send').disabled=false}
-  };
-
-  $('newChat').onclick=()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();say('Nova conversa.')};
-  $('logout').onclick=()=>{sessionStorage.removeItem(KEY);location.reload()};
-  $('refreshConvos').onclick=loadConvos;
-  $('refreshFiles').onclick=async()=>{
-    try{
-      const d=await api(`/repos/${owner}/${repo}/git/trees/${encodeURIComponent($('branch').value||branch)}?recursive=1`);
-      const list=(d.tree||[]).filter(x=>x.type==='blob').slice(0,250).map(x=>x.path);
-      $('fileList').innerHTML=list.map(p=>'<div style="padding:6px 0;border-bottom:1px solid #2a3a55;font-size:13px">'+p+'</div>').join('')||'Vazio.';
-    }catch(e){$('fileList').textContent=e.message}
-  };
-  $('message').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('composer').requestSubmit()}};
-
-  if(sessionStorage.getItem(KEY))connect().catch(e=>{sessionStorage.removeItem(KEY);$('conn').textContent='Falha';$('loginStatus').textContent=e.message;show('login')});
+  async function getRuns(){const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${WF}/runs?event=workflow_dispatch&per_page=30`);return d.workflow_runs||[]}
+  async function waitRun(before,started,br){const end=Date.now()+125*60*1000;let n=0;while(Date.now()<end){const all=await getRuns();const r=all.find(x=>!before.has(x.id)&&x.head_branch===br&&Date.parse(x.created_at)>=started-90000&&String(x.display_title||'').includes(cid));if(r){const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${r.id}`);say('MEVA #'+r.run_number+' · '+d.status+(d.status==='completed'?' / '+d.conclusion:''));if(d.status==='completed'){if(d.conclusion!=='success')throw Error('Workflow terminou com '+d.conclusion+'. Abra GitHub → Actions para ver a falha.');return}}else say('Aguardando o runner do GitHub…');n++;await sleep(n<6?3000:9000)}throw Error('Tempo excedido. Consulte GitHub → Actions; a execução pode continuar no GitHub.')}
+  $('composer').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const msg=$('message').value.trim(),f=$('zipFile').files[0];if(!msg&&!f&&$('mode').value!=='resume')return;const br=$('branch').value.trim()||branch;if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..'))return say('Branch inválida.','err');busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();try{say('Verificando execuções…');const before=new Set((await getRuns()).map(x=>x.id));const manifest=await uploadZip();const mode=f?'linux_zip':$('mode').value;const task=msg||(f?'Inspecione profundamente este projeto Linux, encontre problemas reais e implemente as melhorias necessárias. Preserve a finalidade e a arquitetura do projeto.':($('mode').value==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':''));if(!task.trim())throw Error('Descreva a tarefa.');messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';const payload={ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:$('maxActions').value,attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${WF}/dispatches`,{method:'POST',body:JSON.stringify(payload)});$('zipFile').value='';$('fileInfo').textContent='ZIP processado ou aguardando o agente.';await waitRun(before,started,br);await loadConversation();say('Concluído.','ok')}catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}finally{busy=false;$('send').disabled=false}});
+  $('newChat').addEventListener('click',()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location.href);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();$('downloadArea').replaceChildren();say('Nova conversa criada.')});
+  $('logout').addEventListener('click',()=>{sessionStorage.removeItem(KEY);location.reload()});
+  $('refreshConvos').addEventListener('click',async()=>{const root=$('convoList');root.textContent='Carregando…';try{const p=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations?ref=${encodeURIComponent($('branch').value||branch)}`;const d=await api(p);root.replaceChildren();for(const it of (d||[]).filter(x=>x.name&&x.name.endsWith('.json')).slice(-40).reverse()){const id=it.name.slice(0,-5);if(!/^[A-Za-z0-9_-]{8,80}$/.test(id))continue;const el=document.createElement('div');el.textContent=id;el.addEventListener('click',()=>{cid=id;localStorage.setItem(CHAT,cid);loadConversation().then(()=>show('chat')).catch(e=>say(e.message,'err'))});root.append(el)}if(!root.childNodes.length)root.textContent='Nenhuma conversa.'}catch(x){root.textContent=x.message}});
+  $('refreshFiles').addEventListener('click',async()=>{const root=$('fileList');root.textContent='Carregando…';try{const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent($('branch').value||branch)}?recursive=1`);root.replaceChildren();for(const f of (d.tree||[]).filter(x=>x.type==='blob').slice(0,400)){const el=document.createElement('div');el.className='file-row';el.textContent=f.path;root.append(el)}if(!root.childNodes.length)root.textContent='Nenhum arquivo.'}catch(e){root.textContent=e.message}});
+  $('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('composer').requestSubmit()}});
+  if(sessionStorage.getItem(KEY))connect().catch(e=>{sessionStorage.removeItem(KEY);$('connection').textContent='Falha';$('loginStatus').textContent=e.message;show('login')});
 })();
 </script>
 </body></html>
