@@ -27,7 +27,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
         <p class="muted">Fine-grained Personal Access Token do repositório: Contents (Read and write), Actions (Read and write) e Metadata (Read-only).</p>
         <form id="loginForm"><label>GitHub token</label><input id="token" type="password" autocomplete="off" required><button class="primary" style="margin-top:10px">Conectar</button></form>
         <div id="loginStatus" class="status"></div>
-        <div class="warning">A chave fica somente na sessão desta aba. Em repositório público, os ZIPs enviados e os Releases podem ser baixados por qualquer pessoa. Use repositório privado para projetos privados. Nunca coloque chaves de IA nesta tela.</div>
+        <div class="warning">A chave fica somente na sessão desta aba. Em repositório público, as partes temporárias do ZIP e o Release final ficam públicos enquanto existirem. Use repositório privado para projetos privados. Nunca coloque chaves de IA nesta tela.</div>
       </div>
     </section>
     <section id="view-chat" class="view">
@@ -64,7 +64,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
   const $=id=>document.getElementById(id);
   const KEY='meva_v13_pat',CHAT='meva_v13_chat';
   const WORKFLOW_NAME='MEVA CODE V13 — Linux ZIP Engineering Agent';
-  let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null;
+  let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null,repoSizeBytes=0;
   const say=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.querySelectorAll('nav button').forEach(e=>e.classList.remove('active'));$('view-'+v).classList.add('active');const b=document.querySelector(`nav button[data-view="${v}"]`);if(b)b.classList.add('active')}
@@ -73,13 +73,32 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
     const token=sessionStorage.getItem(KEY);if(!token)throw Error('Desconectado.');
     const prefix=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
     if(typeof path!=='string'||!path.startsWith(prefix))throw Error('Caminho da API inválido.');
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);let r;
-    try{r=await fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{}),...(opt.headers||{})},signal:controller.signal,cache:'no-store'})}
-    catch(e){if(e.name==='AbortError')throw Error('Tempo esgotado ao consultar o GitHub.');throw Error('Falha de rede/CORS: '+(e.message||''))}finally{clearTimeout(timer)}
+    const timeoutMs=Number(opt.timeoutMs)||60000;
+    const request={...opt};delete request.timeoutMs;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);let r;
+    try{
+      r=await fetch('https://api.github.com'+path,{...request,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(request.body?{'Content-Type':'application/json'}:{}),...(request.headers||{})},signal:controller.signal,cache:'no-store'});
+    }catch(e){
+      if(e.name==='AbortError')throw Error('Tempo esgotado ao enviar dados para api.github.com.');
+      throw Error('Falha de rede ao acessar api.github.com: '+(e.message||'bloqueio do navegador, CORS ou conexão interrompida.'));
+    }finally{clearTimeout(timer)}
     if(r.status===204)return null;
     const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
-    if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,280)}`)}
+    if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,350)}`)}
     return d;
+  }
+  async function apiRetry(path,opt={},maxAttempts=4){
+    let last;
+    for(let attempt=0;attempt<maxAttempts;attempt++){
+      try{return await api(path,opt)}catch(e){
+        last=e;const msg=String(e.message||e);
+        const retry=/GitHub HTTP (408|429|500|502|503|504)/i.test(msg)||/rate limit|secondary rate|Falha de rede ao acessar api\.github\.com|Tempo esgotado ao enviar/i.test(msg);
+        if(!retry||attempt===maxAttempts-1)throw e;
+        say('Instabilidade na API; repetindo envio ('+(attempt+2)+'/'+maxAttempts+')…');
+        await sleep(Math.min(12000,1500*Math.pow(2,attempt)));
+      }
+    }
+    throw last||Error('Falha desconhecida na API do GitHub.');
   }
   async function resolveWorkflow(){
     const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows?per_page=100`);
@@ -107,7 +126,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
   async function connect(){
     const info=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
     if(info.name.toLowerCase()!==repo.toLowerCase()||info.owner.login.toLowerCase()!==owner.toLowerCase())throw Error('Repositório divergente.');
-    isPrivate=Boolean(info.private);branch=info.default_branch||'main';$('branch').value=branch;
+    isPrivate=Boolean(info.private);repoSizeBytes=Math.max(0,Number(info.size||0)*1024);branch=info.default_branch||'main';$('branch').value=branch;
     $('repoInfo').textContent=owner+'/'+repo+' · '+branch+' · '+(isPrivate?'Privado':'Público');
     $('secretLink').href=`https://github.com/${owner}/${repo}/settings/secrets/actions`;
     await resolveWorkflow();
@@ -125,42 +144,76 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
     const f=$('zipFile').files[0];if(!f){$('fileInfo').textContent='Selecione um ZIP para importar ou continue uma conversa.';return}
     const mb=f.size/1048576;$('fileInfo').textContent=f.name+' · '+mb.toFixed(1)+' MB';
     if(!f.name.toLowerCase().endsWith('.zip'))say('Envie um arquivo .zip.','err');
-    else if(f.size<=0||f.size>1800*1024*1024)say('O limite de entrada é 1,8 GB.','err');else say('ZIP pronto para envio.','ok');
+    else if(f.size<=0||f.size>Math.min(GIT_UPLOAD_LIMIT,Math.max(0,GIT_REPO_BUDGET-repoSizeBytes)))say('O ZIP ultrapassa o limite seguro para upload neste repositório.','err');else say('ZIP pronto para envio por blocos.','ok');
   });
   function safeName(n){n=String(n||'linux.zip').normalize('NFKC');return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100)||'linux.zip'}
+  const GIT_CHUNK_SIZE=16*1024*1024;
+  const GIT_UPLOAD_LIMIT=900*1024*1024;
+  const GIT_REPO_BUDGET=950*1024*1024;
+  function toBase64(buffer){
+    const bytes=new Uint8Array(buffer);let binary='';
+    for(let i=0;i<bytes.length;i+=0x8000){binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000))}
+    return btoa(binary);
+  }
   async function uploadZip(){
     const f=$('zipFile').files[0];if(!f)return '';
     if(!f.name.toLowerCase().endsWith('.zip'))throw Error('O arquivo precisa terminar em .zip.');
-    if(f.size<=0||f.size>1800*1024*1024)throw Error('Limite de entrada: 1,8 GB.');
-    if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. O ZIP ficará disponível publicamente em Releases. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
-    const tag='meva-v13-upload-'+cid+'-'+Date.now();let release=null;
-    try{
-      say('Criando Release temporário…');
-      release=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases`,{method:'POST',body:JSON.stringify({tag_name:tag,name:'MEVA V13 — upload temporário',body:'Upload temporário do projeto Linux.',draft:true,prerelease:true})});
-      if(!release?.id||!release?.upload_url)throw Error('GitHub não retornou upload_url/Release ID.');
-      const base=release.upload_url.replace(/\{\?.*$/,'');const endpoint=new URL(base);
-      if(endpoint.protocol!=='https:'||endpoint.hostname!=='uploads.github.com')throw Error('Endpoint de upload inválido: '+endpoint.hostname);
-      endpoint.searchParams.set('name',safeName(f.name));
-      say('Enviando ZIP: 0%');
-      const asset=await new Promise((resolve,reject)=>{
-        const x=new XMLHttpRequest();x.open('POST',endpoint.toString(),true);x.timeout=30*60*1000;
-        x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));
-        x.setRequestHeader('Accept','application/vnd.github+json');
-        x.setRequestHeader('X-GitHub-Api-Version','2022-11-28');
-        x.setRequestHeader('Content-Type','application/zip');
-        x.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadProgress').style.width=p+'%';say('Enviando ZIP: '+p+'%')}};
-        x.onload=()=>{let d={};try{d=JSON.parse(x.responseText)}catch{}if(x.status===201&&d.id&&d.state==='uploaded'&&Number(d.size)===f.size)resolve(d);else reject(Error('GitHub recusou o upload · HTTP '+x.status+' · '+(d.message||x.responseText||'resposta vazia')))};
-        x.onerror=()=>reject(Error('Falha de rede/CORS durante o upload. Verifique a conexão e tente novamente.'));
-        x.ontimeout=()=>reject(Error('Upload excedeu 30 minutos.'));x.onabort=()=>reject(Error('Upload interrompido.'));x.send(f);
-      });
-      say('Verificando asset e publicando Release…');
-      await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({draft:false,prerelease:true,name:'MEVA V13 — projeto Linux recebido'})});
-      $('uploadProgress').style.width='100%';
-      return JSON.stringify({release_id:Number(release.id),tag_name:tag,assets:[{asset_id:Number(asset.id),name:asset.name,size:Number(asset.size),content_type:asset.content_type}]});
-    }catch(err){
-      if(release?.id){try{await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'DELETE'})}catch(clean){console.warn('Falha ao remover Release incompleto:',clean)}}
-      throw err;
+    if(f.size<=0)throw Error('O ZIP está vazio.');
+    const available=Math.max(0,GIT_REPO_BUDGET-repoSizeBytes);
+    const limit=Math.min(GIT_UPLOAD_LIMIT,available);
+    if(f.size>limit){
+      throw Error('Upload por navegador limitado a '+(limit/1048576).toFixed(0)+' MB neste repositório. O transporte temporário usa objetos Git; o GitHub recomenda manter o repositório abaixo de 1 GB. Para um ZIP maior, use Git LFS ou um armazenamento externo com upload CORS.');
     }
+    if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. As partes temporárias do ZIP ficarão acessíveis publicamente enquanto o workflow executa. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
+
+    const uploadId=Date.now().toString(36)+'-'+crypto.randomUUID().replace(/-/g,'').slice(0,12);
+    const uploadRef='meva-upload-'+uploadId;
+    const baseBranch=($('branch').value.trim()||branch);
+    const encodedRef=encodeURIComponent('heads/'+baseBranch);
+    say('Preparando transporte seguro pelo GitHub API…');
+
+    // Descobre o commit-base e cria blobs de 16 MiB via api.github.com.
+    const refInfo=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodedRef}`);
+    const parentSha=refInfo?.object?.sha;
+    if(!parentSha)throw Error('Não foi possível identificar o commit da branch '+baseBranch+'.');
+    const baseCommit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${parentSha}`);
+    const baseTree=baseCommit?.tree?.sha;
+    if(!baseTree)throw Error('Não foi possível identificar a árvore Git da branch-base.');
+
+    const entries=[],parts=[];
+    const total=Math.ceil(f.size/GIT_CHUNK_SIZE);
+    for(let i=0;i<total;i++){
+      const offset=i*GIT_CHUNK_SIZE,end=Math.min(f.size,offset+GIT_CHUNK_SIZE);
+      const bytes=await f.slice(offset,end).arrayBuffer();
+      const content=toBase64(bytes);
+      const blob=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs`,{
+        method:'POST',timeoutMs:180000,body:JSON.stringify({content,encoding:'base64'})
+      });
+      if(!blob?.sha)throw Error('GitHub não retornou o SHA do bloco '+(i+1)+'.');
+      const path='.meva-upload/'+uploadId+'/part-'+String(i).padStart(5,'0')+'.bin';
+      entries.push({path,mode:'100644',type:'blob',sha:blob.sha});
+      parts.push({path,size:end-offset});
+      const percent=Math.round((end/f.size)*90);
+      $('uploadProgress').style.width=percent+'%';
+      say('Enviando ZIP por blocos: '+(i+1)+'/'+total+' · '+Math.round(end/1048576)+'/'+Math.ceil(f.size/1048576)+' MB');
+      await sleep(350);
+    }
+
+    say('Montando branch temporário de transporte…');
+    const tree=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees`,{
+      method:'POST',timeoutMs:180000,body:JSON.stringify({base_tree:baseTree,tree:entries})
+    });
+    if(!tree?.sha)throw Error('Falha ao montar a árvore temporária do upload.');
+    const commit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits`,{
+      method:'POST',timeoutMs:180000,body:JSON.stringify({message:'MEVA: upload temporário em blocos '+uploadId,tree:tree.sha,parents:[parentSha]})
+    });
+    if(!commit?.sha)throw Error('Falha ao criar commit temporário do upload.');
+    await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs`,{
+      method:'POST',timeoutMs:180000,body:JSON.stringify({ref:'refs/heads/'+uploadRef,sha:commit.sha})
+    });
+    $('uploadProgress').style.width='100%';
+    say('ZIP enviado e conferido em '+parts.length+' blocos.');
+    return JSON.stringify({transport:'git_chunks',upload_ref:uploadRef,upload_id:uploadId,name:safeName(f.name),size:f.size,chunk_size:GIT_CHUNK_SIZE,parts});
   }
   async function getRuns(){
     if(!workflowId)await resolveWorkflow();
@@ -192,7 +245,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
     if(!msg&&!f&&selectedMode!=='resume')return say('Escreva uma tarefa ou selecione um ZIP.','err');
     const br=$('branch').value.trim()||branch;
     if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..')||br.startsWith('/')||br.endsWith('/'))return say('Branch inválida.','err');
-    busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();
+    busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();let pendingUploadRef='';
     try{
       await resolveWorkflow();
       const manifest=await uploadZip();
@@ -200,13 +253,14 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
       const task=msg||(f?'Inspecione profundamente este projeto Linux, identifique problemas verificáveis e proponha/implemente correções coerentes. Preserve a arquitetura.':selectedMode==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':'');
       if(!task.trim()&&mode!=='self_test')throw Error('Descreva a tarefa.');
       messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';
-      const payload={ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
+      const manifestData=manifest?JSON.parse(manifest):null;const uploadRef=manifestData?.upload_ref||'';pendingUploadRef=uploadRef;const runRef=uploadRef||br;const payload={ref:runRef,inputs:{mode,message:task,conversation_id:cid,branch:br,upload_ref:uploadRef,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
       say('Enviando tarefa ao GitHub Actions…');
       await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify(payload)});
+      pendingUploadRef='';
       $('zipFile').value='';$('fileInfo').textContent='ZIP recebido; agente em execução.';
-      const run=await waitRun(started,br);await loadConversation();
+      const run=await waitRun(started,runRef);await loadConversation();
       say('Concluído. Execução #'+run.run_number,'ok');
-    }catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}
+    }catch(x){if(pendingUploadRef){try{await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs/heads/${encodeURIComponent(pendingUploadRef)}`,{method:'DELETE'})}catch(clean){console.warn('Não foi possível limpar a branch de upload:',clean)}}say(x.message,'err');await loadConversation().catch(()=>{})}
     finally{busy=false;$('send').disabled=false}
   });
   $('newChat').addEventListener('click',()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location.href);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();$('downloadArea').replaceChildren();say('Nova conversa criada.')});
