@@ -35,6 +35,11 @@ on:
         type: string
         required: false
         default: ""
+      upload_ref:
+        description: Branch temporário criado para transportar o ZIP por partes
+        type: string
+        required: false
+        default: ""
       autonomy:
         description: "safe = leitura | ask = plano | auto = editar"
         type: choice
@@ -121,7 +126,7 @@ jobs:
                   <p class="muted">Fine-grained Personal Access Token do repositório: Contents (Read and write), Actions (Read and write) e Metadata (Read-only).</p>
                   <form id="loginForm"><label>GitHub token</label><input id="token" type="password" autocomplete="off" required><button class="primary" style="margin-top:10px">Conectar</button></form>
                   <div id="loginStatus" class="status"></div>
-                  <div class="warning">A chave fica somente na sessão desta aba. Em repositório público, os ZIPs enviados e os Releases podem ser baixados por qualquer pessoa. Use repositório privado para projetos privados. Nunca coloque chaves de IA nesta tela.</div>
+                  <div class="warning">A chave fica somente na sessão desta aba. Em repositório público, as partes temporárias do ZIP e o Release final ficam públicos enquanto existirem. Use repositório privado para projetos privados. Nunca coloque chaves de IA nesta tela.</div>
                 </div>
               </section>
               <section id="view-chat" class="view">
@@ -158,7 +163,7 @@ jobs:
             const $=id=>document.getElementById(id);
             const KEY='meva_v13_pat',CHAT='meva_v13_chat';
             const WORKFLOW_NAME='MEVA CODE V13 — Linux ZIP Engineering Agent';
-            let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null;
+            let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null,repoSizeBytes=0;
             const say=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
             const sleep=ms=>new Promise(r=>setTimeout(r,ms));
             function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.querySelectorAll('nav button').forEach(e=>e.classList.remove('active'));$('view-'+v).classList.add('active');const b=document.querySelector(`nav button[data-view="${v}"]`);if(b)b.classList.add('active')}
@@ -167,13 +172,32 @@ jobs:
               const token=sessionStorage.getItem(KEY);if(!token)throw Error('Desconectado.');
               const prefix=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
               if(typeof path!=='string'||!path.startsWith(prefix))throw Error('Caminho da API inválido.');
-              const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);let r;
-              try{r=await fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{}),...(opt.headers||{})},signal:controller.signal,cache:'no-store'})}
-              catch(e){if(e.name==='AbortError')throw Error('Tempo esgotado ao consultar o GitHub.');throw Error('Falha de rede/CORS: '+(e.message||''))}finally{clearTimeout(timer)}
+              const timeoutMs=Number(opt.timeoutMs)||60000;
+              const request={...opt};delete request.timeoutMs;
+              const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);let r;
+              try{
+                r=await fetch('https://api.github.com'+path,{...request,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(request.body?{'Content-Type':'application/json'}:{}),...(request.headers||{})},signal:controller.signal,cache:'no-store'});
+              }catch(e){
+                if(e.name==='AbortError')throw Error('Tempo esgotado ao enviar dados para api.github.com.');
+                throw Error('Falha de rede ao acessar api.github.com: '+(e.message||'bloqueio do navegador, CORS ou conexão interrompida.'));
+              }finally{clearTimeout(timer)}
               if(r.status===204)return null;
               const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
-              if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,280)}`)}
+              if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,350)}`)}
               return d;
+            }
+            async function apiRetry(path,opt={},maxAttempts=4){
+              let last;
+              for(let attempt=0;attempt<maxAttempts;attempt++){
+                try{return await api(path,opt)}catch(e){
+                  last=e;const msg=String(e.message||e);
+                  const retry=/GitHub HTTP (408|429|500|502|503|504)/i.test(msg)||/rate limit|secondary rate|Falha de rede ao acessar api\.github\.com|Tempo esgotado ao enviar/i.test(msg);
+                  if(!retry||attempt===maxAttempts-1)throw e;
+                  say('Instabilidade na API; repetindo envio ('+(attempt+2)+'/'+maxAttempts+')…');
+                  await sleep(Math.min(12000,1500*Math.pow(2,attempt)));
+                }
+              }
+              throw last||Error('Falha desconhecida na API do GitHub.');
             }
             async function resolveWorkflow(){
               const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows?per_page=100`);
@@ -201,7 +225,7 @@ jobs:
             async function connect(){
               const info=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
               if(info.name.toLowerCase()!==repo.toLowerCase()||info.owner.login.toLowerCase()!==owner.toLowerCase())throw Error('Repositório divergente.');
-              isPrivate=Boolean(info.private);branch=info.default_branch||'main';$('branch').value=branch;
+              isPrivate=Boolean(info.private);repoSizeBytes=Math.max(0,Number(info.size||0)*1024);branch=info.default_branch||'main';$('branch').value=branch;
               $('repoInfo').textContent=owner+'/'+repo+' · '+branch+' · '+(isPrivate?'Privado':'Público');
               $('secretLink').href=`https://github.com/${owner}/${repo}/settings/secrets/actions`;
               await resolveWorkflow();
@@ -219,42 +243,76 @@ jobs:
               const f=$('zipFile').files[0];if(!f){$('fileInfo').textContent='Selecione um ZIP para importar ou continue uma conversa.';return}
               const mb=f.size/1048576;$('fileInfo').textContent=f.name+' · '+mb.toFixed(1)+' MB';
               if(!f.name.toLowerCase().endsWith('.zip'))say('Envie um arquivo .zip.','err');
-              else if(f.size<=0||f.size>1800*1024*1024)say('O limite de entrada é 1,8 GB.','err');else say('ZIP pronto para envio.','ok');
+              else if(f.size<=0||f.size>Math.min(GIT_UPLOAD_LIMIT,Math.max(0,GIT_REPO_BUDGET-repoSizeBytes)))say('O ZIP ultrapassa o limite seguro para upload neste repositório.','err');else say('ZIP pronto para envio por blocos.','ok');
             });
             function safeName(n){n=String(n||'linux.zip').normalize('NFKC');return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100)||'linux.zip'}
+            const GIT_CHUNK_SIZE=16*1024*1024;
+            const GIT_UPLOAD_LIMIT=900*1024*1024;
+            const GIT_REPO_BUDGET=950*1024*1024;
+            function toBase64(buffer){
+              const bytes=new Uint8Array(buffer);let binary='';
+              for(let i=0;i<bytes.length;i+=0x8000){binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000))}
+              return btoa(binary);
+            }
             async function uploadZip(){
               const f=$('zipFile').files[0];if(!f)return '';
               if(!f.name.toLowerCase().endsWith('.zip'))throw Error('O arquivo precisa terminar em .zip.');
-              if(f.size<=0||f.size>1800*1024*1024)throw Error('Limite de entrada: 1,8 GB.');
-              if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. O ZIP ficará disponível publicamente em Releases. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
-              const tag='meva-v13-upload-'+cid+'-'+Date.now();let release=null;
-              try{
-                say('Criando Release temporário…');
-                release=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases`,{method:'POST',body:JSON.stringify({tag_name:tag,name:'MEVA V13 — upload temporário',body:'Upload temporário do projeto Linux.',draft:true,prerelease:true})});
-                if(!release?.id||!release?.upload_url)throw Error('GitHub não retornou upload_url/Release ID.');
-                const base=release.upload_url.replace(/\{\?.*$/,'');const endpoint=new URL(base);
-                if(endpoint.protocol!=='https:'||endpoint.hostname!=='uploads.github.com')throw Error('Endpoint de upload inválido: '+endpoint.hostname);
-                endpoint.searchParams.set('name',safeName(f.name));
-                say('Enviando ZIP: 0%');
-                const asset=await new Promise((resolve,reject)=>{
-                  const x=new XMLHttpRequest();x.open('POST',endpoint.toString(),true);x.timeout=30*60*1000;
-                  x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));
-                  x.setRequestHeader('Accept','application/vnd.github+json');
-                  x.setRequestHeader('X-GitHub-Api-Version','2022-11-28');
-                  x.setRequestHeader('Content-Type','application/zip');
-                  x.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadProgress').style.width=p+'%';say('Enviando ZIP: '+p+'%')}};
-                  x.onload=()=>{let d={};try{d=JSON.parse(x.responseText)}catch{}if(x.status===201&&d.id&&d.state==='uploaded'&&Number(d.size)===f.size)resolve(d);else reject(Error('GitHub recusou o upload · HTTP '+x.status+' · '+(d.message||x.responseText||'resposta vazia')))};
-                  x.onerror=()=>reject(Error('Falha de rede/CORS durante o upload. Verifique a conexão e tente novamente.'));
-                  x.ontimeout=()=>reject(Error('Upload excedeu 30 minutos.'));x.onabort=()=>reject(Error('Upload interrompido.'));x.send(f);
-                });
-                say('Verificando asset e publicando Release…');
-                await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({draft:false,prerelease:true,name:'MEVA V13 — projeto Linux recebido'})});
-                $('uploadProgress').style.width='100%';
-                return JSON.stringify({release_id:Number(release.id),tag_name:tag,assets:[{asset_id:Number(asset.id),name:asset.name,size:Number(asset.size),content_type:asset.content_type}]});
-              }catch(err){
-                if(release?.id){try{await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'DELETE'})}catch(clean){console.warn('Falha ao remover Release incompleto:',clean)}}
-                throw err;
+              if(f.size<=0)throw Error('O ZIP está vazio.');
+              const available=Math.max(0,GIT_REPO_BUDGET-repoSizeBytes);
+              const limit=Math.min(GIT_UPLOAD_LIMIT,available);
+              if(f.size>limit){
+                throw Error('Upload por navegador limitado a '+(limit/1048576).toFixed(0)+' MB neste repositório. O transporte temporário usa objetos Git; o GitHub recomenda manter o repositório abaixo de 1 GB. Para um ZIP maior, use Git LFS ou um armazenamento externo com upload CORS.');
               }
+              if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. As partes temporárias do ZIP ficarão acessíveis publicamente enquanto o workflow executa. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
+
+              const uploadId=Date.now().toString(36)+'-'+crypto.randomUUID().replace(/-/g,'').slice(0,12);
+              const uploadRef='meva-upload-'+uploadId;
+              const baseBranch=($('branch').value.trim()||branch);
+              const encodedRef=encodeURIComponent('heads/'+baseBranch);
+              say('Preparando transporte seguro pelo GitHub API…');
+
+              // Descobre o commit-base e cria blobs de 16 MiB via api.github.com.
+              const refInfo=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodedRef}`);
+              const parentSha=refInfo?.object?.sha;
+              if(!parentSha)throw Error('Não foi possível identificar o commit da branch '+baseBranch+'.');
+              const baseCommit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${parentSha}`);
+              const baseTree=baseCommit?.tree?.sha;
+              if(!baseTree)throw Error('Não foi possível identificar a árvore Git da branch-base.');
+
+              const entries=[],parts=[];
+              const total=Math.ceil(f.size/GIT_CHUNK_SIZE);
+              for(let i=0;i<total;i++){
+                const offset=i*GIT_CHUNK_SIZE,end=Math.min(f.size,offset+GIT_CHUNK_SIZE);
+                const bytes=await f.slice(offset,end).arrayBuffer();
+                const content=toBase64(bytes);
+                const blob=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs`,{
+                  method:'POST',timeoutMs:180000,body:JSON.stringify({content,encoding:'base64'})
+                });
+                if(!blob?.sha)throw Error('GitHub não retornou o SHA do bloco '+(i+1)+'.');
+                const path='.meva-upload/'+uploadId+'/part-'+String(i).padStart(5,'0')+'.bin';
+                entries.push({path,mode:'100644',type:'blob',sha:blob.sha});
+                parts.push({path,size:end-offset});
+                const percent=Math.round((end/f.size)*90);
+                $('uploadProgress').style.width=percent+'%';
+                say('Enviando ZIP por blocos: '+(i+1)+'/'+total+' · '+Math.round(end/1048576)+'/'+Math.ceil(f.size/1048576)+' MB');
+                await sleep(350);
+              }
+
+              say('Montando branch temporário de transporte…');
+              const tree=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees`,{
+                method:'POST',timeoutMs:180000,body:JSON.stringify({base_tree:baseTree,tree:entries})
+              });
+              if(!tree?.sha)throw Error('Falha ao montar a árvore temporária do upload.');
+              const commit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits`,{
+                method:'POST',timeoutMs:180000,body:JSON.stringify({message:'MEVA: upload temporário em blocos '+uploadId,tree:tree.sha,parents:[parentSha]})
+              });
+              if(!commit?.sha)throw Error('Falha ao criar commit temporário do upload.');
+              await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs`,{
+                method:'POST',timeoutMs:180000,body:JSON.stringify({ref:'refs/heads/'+uploadRef,sha:commit.sha})
+              });
+              $('uploadProgress').style.width='100%';
+              say('ZIP enviado e conferido em '+parts.length+' blocos.');
+              return JSON.stringify({transport:'git_chunks',upload_ref:uploadRef,upload_id:uploadId,name:safeName(f.name),size:f.size,chunk_size:GIT_CHUNK_SIZE,parts});
             }
             async function getRuns(){
               if(!workflowId)await resolveWorkflow();
@@ -286,7 +344,7 @@ jobs:
               if(!msg&&!f&&selectedMode!=='resume')return say('Escreva uma tarefa ou selecione um ZIP.','err');
               const br=$('branch').value.trim()||branch;
               if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..')||br.startsWith('/')||br.endsWith('/'))return say('Branch inválida.','err');
-              busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();
+              busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();let pendingUploadRef='';
               try{
                 await resolveWorkflow();
                 const manifest=await uploadZip();
@@ -294,13 +352,14 @@ jobs:
                 const task=msg||(f?'Inspecione profundamente este projeto Linux, identifique problemas verificáveis e proponha/implemente correções coerentes. Preserve a arquitetura.':selectedMode==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':'');
                 if(!task.trim()&&mode!=='self_test')throw Error('Descreva a tarefa.');
                 messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';
-                const payload={ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
+                const manifestData=manifest?JSON.parse(manifest):null;const uploadRef=manifestData?.upload_ref||'';pendingUploadRef=uploadRef;const runRef=uploadRef||br;const payload={ref:runRef,inputs:{mode,message:task,conversation_id:cid,branch:br,upload_ref:uploadRef,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
                 say('Enviando tarefa ao GitHub Actions…');
                 await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify(payload)});
+                pendingUploadRef='';
                 $('zipFile').value='';$('fileInfo').textContent='ZIP recebido; agente em execução.';
-                const run=await waitRun(started,br);await loadConversation();
+                const run=await waitRun(started,runRef);await loadConversation();
                 say('Concluído. Execução #'+run.run_number,'ok');
-              }catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}
+              }catch(x){if(pendingUploadRef){try{await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs/heads/${encodeURIComponent(pendingUploadRef)}`,{method:'DELETE'})}catch(clean){console.warn('Não foi possível limpar a branch de upload:',clean)}}say(x.message,'err');await loadConversation().catch(()=>{})}
               finally{busy=false;$('send').disabled=false}
             });
             $('newChat').addEventListener('click',()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location.href);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();$('downloadArea').replaceChildren();say('Nova conversa criada.')});
@@ -382,11 +441,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Baixar branch de trabalho
+      - name: Baixar branch de trabalho e ZIP temporário
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || github.ref_name }}
-          fetch-depth: 0
+          ref: ${{ inputs.upload_ref || inputs.branch || github.ref_name }}
+          fetch-depth: 1
           persist-credentials: false
 
       - name: Configurar Python
@@ -418,6 +477,7 @@ jobs:
           MESSAGE: ${{ inputs.message }}
           CID: ${{ inputs.conversation_id }}
           BRANCH: ${{ inputs.branch || github.ref_name }}
+          UPLOAD_REF: ${{ inputs.upload_ref }}
           MAX_ACTIONS: ${{ inputs.max_actions }}
           REQUESTED_PROVIDER: ${{ inputs.model_provider }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
@@ -432,6 +492,10 @@ jobs:
           [[ -z "$CID" || "$CID" =~ ^[A-Za-z0-9_-]{8,80}$ ]] || { echo 'ID de conversa inválido.'; exit 1; }
           [[ "$MAX_ACTIONS" =~ ^[0-9]+$ ]] && (( MAX_ACTIONS >= 1 && MAX_ACTIONS <= 80 )) || { echo 'max_actions fora do intervalo 1-80.'; exit 1; }
           git check-ref-format --branch "$BRANCH" >/dev/null
+          if [[ -n "$UPLOAD_REF" ]]; then
+            [[ "$UPLOAD_REF" =~ ^meva-upload-[a-z0-9-]{8,80}$ ]] || { echo 'upload_ref temporário inválido.'; exit 1; }
+            [[ "$MODE" == linux_zip ]] || { echo 'Branch temporário de upload só pode ser usada no modo linux_zip.'; exit 1; }
+          fi
           SELECTED="$REQUESTED_PROVIDER"
           if [[ "$SELECTED" == auto ]]; then
             if [[ -n "${NVIDIA_API_KEY:-}" ]]; then SELECTED=nvidia
@@ -460,6 +524,7 @@ jobs:
           PROVIDER: ${{ steps.request.outputs.provider }}
           ALLOW_BUILD: ${{ inputs.allow_build }}
           ATTACHMENTS: ${{ inputs.attachments }}
+          UPLOAD_REF: ${{ inputs.upload_ref }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_RUN_ID: ${{ github.run_id }}
@@ -531,17 +596,71 @@ jobs:
               if not raw: return None
               try: data=json.loads(raw)
               except Exception as e: raise RuntimeError('Manifesto de upload inválido: '+str(e))
-              if not isinstance(data,dict) or not isinstance(data.get('release_id'),int) or not isinstance(data.get('assets'),list) or len(data['assets'])!=1:
-                  raise RuntimeError('O manifesto precisa identificar exatamente um ZIP.')
+              if not isinstance(data,dict): raise RuntimeError('Manifesto de upload precisa ser um objeto JSON.')
+              transport=data.get('transport','release')
+              if transport=='git_chunks':
+                  upload_ref=str(data.get('upload_ref',''))
+                  upload_id=str(data.get('upload_id',''))
+                  name=str(data.get('name',''))
+                  size=int(data.get('size',0))
+                  chunk_size=int(data.get('chunk_size',0))
+                  parts=data.get('parts')
+                  if not re.fullmatch(r'meva-upload-[a-z0-9-]{8,80}',upload_ref): raise RuntimeError('Branch temporário de upload inválido.')
+                  if not re.fullmatch(r'[a-z0-9-]{8,80}',upload_id): raise RuntimeError('ID de upload inválido.')
+                  if not name.lower().endswith('.zip'): raise RuntimeError('O anexo precisa ser ZIP.')
+                  if size<=0 or size>900*1024*1024: raise RuntimeError('ZIP por blocos vazio ou acima de 900 MiB.')
+                  if chunk_size!=16*1024*1024 or not isinstance(parts,list) or not parts or len(parts)>60: raise RuntimeError('Manifesto de blocos inválido.')
+                  expected_count=(size+chunk_size-1)//chunk_size
+                  if len(parts)!=expected_count: raise RuntimeError('Quantidade de blocos não confere com o tamanho total.')
+                  normalized=[]; summed=0
+                  for i,item in enumerate(parts):
+                      if not isinstance(item,dict): raise RuntimeError('Metadados de bloco inválidos.')
+                      expected_path='.meva-upload/'+upload_id+'/part-'+str(i).zfill(5)+'.bin'
+                      part_path=str(item.get('path',''))
+                      part_size=int(item.get('size',-1))
+                      expected_size=min(chunk_size,size-i*chunk_size)
+                      if part_path!=expected_path or part_size!=expected_size: raise RuntimeError('Caminho ou tamanho do bloco '+str(i)+' inválido.')
+                      normalized.append({'path':expected_path,'size':part_size}); summed+=part_size
+                  if summed!=size: raise RuntimeError('Soma dos blocos não corresponde ao tamanho do ZIP.')
+                  return {'transport':'git_chunks','upload_ref':upload_ref,'upload_id':upload_id,'name':name,'size':size,'chunk_size':chunk_size,'parts':normalized}
+              if not isinstance(data.get('release_id'),int) or not isinstance(data.get('assets'),list) or len(data['assets'])!=1:
+                  raise RuntimeError('Manifesto de Release antigo inválido.')
               item=data['assets'][0]
               if not isinstance(item,dict) or not isinstance(item.get('asset_id'),int): raise RuntimeError('ID do asset inválido.')
               name=str(item.get('name',''))
               if not name.lower().endswith('.zip'): raise RuntimeError('O anexo precisa ser ZIP.')
               size=int(item.get('size',0))
               if size<=0 or size>MAX_UPLOAD: raise RuntimeError('Tamanho do ZIP inválido ou acima de 1,8 GB.')
-              return {'release_id':data['release_id'],'tag_name':str(data.get('tag_name','')),'asset_id':item['asset_id'],'name':name,'size':size}
+              return {'transport':'release','release_id':data['release_id'],'tag_name':str(data.get('tag_name','')),'asset_id':item['asset_id'],'name':name,'size':size}
 
           def download_asset(meta):
+              if meta.get('transport')=='git_chunks':
+                  upload_ref=os.getenv('UPLOAD_REF','')
+                  if upload_ref!=meta['upload_ref']: raise RuntimeError('A branch executada não corresponde à branch temporária do upload.')
+                  upload_root=ROOT/'.meva-upload'/meta['upload_id']
+                  parent=ROOT/'.meva-upload'
+                  if parent.is_symlink() or upload_root.is_symlink(): raise RuntimeError('Diretório temporário de upload contém symlink não permitido.')
+                  resolved=upload_root.resolve(strict=False)
+                  if ROOT.resolve() not in resolved.parents: raise RuntimeError('Diretório temporário de upload escapou do repositório.')
+                  INBOX.mkdir(parents=True,exist_ok=True)
+                  dest=INBOX/'linux-upload.zip'; dest.unlink(missing_ok=True)
+                  total=0
+                  with dest.open('wb') as out:
+                      for i,part in enumerate(meta['parts']):
+                          src=ROOT/part['path']
+                          if src.is_symlink() or not src.is_file(): raise RuntimeError('Bloco ausente ou symlink: '+part['path'])
+                          if src.stat().st_size!=part['size']: raise RuntimeError('Tamanho incorreto no bloco '+str(i)+'.')
+                          with src.open('rb') as inp:
+                              shutil.copyfileobj(inp,out,1024*1024)
+                          total+=part['size']
+                  if total!=meta['size']: raise RuntimeError('ZIP reconstruído incompleto: '+str(total)+' de '+str(meta['size'])+' bytes.')
+                  if not zipfile.is_zipfile(dest): raise RuntimeError('Os blocos foram recebidos, mas o ZIP reconstruído é inválido.')
+                  shutil.rmtree(upload_root,ignore_errors=True)
+                  try: parent.rmdir()
+                  except OSError: pass
+                  log('ZIP reconstruído a partir de '+str(len(meta['parts']))+' blocos: '+str(total)+' bytes.')
+                  return dest
+
               rid=int(meta['release_id']); aid=int(meta['asset_id'])
               with gh_request('/releases/'+str(rid)) as r: release=json.loads(r.read().decode('utf-8'))
               if int(release.get('id',-1))!=rid: raise RuntimeError('Release do anexo não corresponde ao ID informado.')
@@ -1078,7 +1197,7 @@ jobs:
               if MODE=='linux_zip' and not archive_meta: raise RuntimeError('Nenhum ZIP foi anexado. Selecione o arquivo ZIP na interface.')
               if archive_meta:
                   archive_path=download_asset(archive_meta); unzip_project(archive_path)
-                  if incoming: history['source_archive']=incoming
+                  if incoming: history['source_archive']=incoming if incoming.get('transport')=='release' else None
                   history['project_loaded_at']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
               if PROJECT.is_dir():
                   before=snapshot(); copy_baseline(); info=project_info()
@@ -1219,13 +1338,37 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           mkdir -p meva-data/conversations meva-data/checkpoints
+          # Preserve only the conversation data, then return to the original branch.
+          # This prevents the temporary ZIP commit from being pushed into the main project history.
+          cp -a meva-data /tmp/meva-data-persist
+          AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.extraheader=AUTHORIZATION: basic $AUTH" fetch origin "+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
+          git checkout -f -B "$BRANCH" "origin/${BRANCH}"
+          mkdir -p meva-data
+          cp -a /tmp/meva-data-persist/. meva-data/
           git add -A -- meva-data
           if ! git diff --cached --quiet; then
             git commit -m "MEVA V13: salvar conversa ${CID}"
-            AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-            git -c "http.extraheader=AUTHORIZATION: basic $AUTH" fetch origin "+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
-            git rebase "origin/${BRANCH}"
             git -c "http.extraheader=AUTHORIZATION: basic $AUTH" push origin "HEAD:${BRANCH}"
+          fi
+
+      - name: Remover branch temporário do upload
+        if: ${{ always() && inputs.upload_ref != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          UPLOAD_REF: ${{ inputs.upload_ref }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ ! "$UPLOAD_REF" =~ ^meva-upload-[a-z0-9-]{8,80}$ ]]; then
+            echo 'Branch de upload fora do padrão; limpeza automática recusada.'
+            exit 0
+          fi
+          if gh api --method DELETE "repos/${GH_REPO}/git/refs/heads/${UPLOAD_REF}"; then
+            echo 'Branch temporário removido.'
+          else
+            echo 'Aviso: não foi possível remover a branch temporária. Remova-a manualmente após verificar a execução.'
           fi
 
       - name: Resumo da execução
@@ -1245,9 +1388,9 @@ jobs:
             echo "- Provedor: ${PROVIDER:-não selecionado}"
             echo "- Autonomia: ${AUTONOMY}"
             echo "- Build autorizado: ${ALLOW_BUILD}"
-            echo '- Entrada: asset de Release identificado por IDs e validado por tamanho.'
+            echo '- Entrada: ZIP transmitido em blocos pela REST API CORS do GitHub ou Release legado; tamanho verificado.'
             echo '- Extração: validação de traversal, arquivos especiais, symlinks e arquivos sensíveis.'
             echo '- Projeto: workspace separado do repositório MEVA.'
             echo '- Saída: ZIP completo em Release com relatório, manifesto e diff, quando houve projeto carregado.'
-            echo '- Segurança: chaves de API removidas do ambiente dos subprocessos.'
+            echo '- Segurança: branch temporário removido ao final; chaves de API não são incluídas no ZIP.'
           } >> "$GITHUB_STEP_SUMMARY"
