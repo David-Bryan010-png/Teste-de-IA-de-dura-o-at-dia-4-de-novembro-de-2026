@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#09111f">
-<title>MEVA CODE V13</title>
+<title>MEVA CODE V15</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;--bg:#09111f;--panel:#121e31;--line:#2a3b56;--text:#edf4ff;--muted:#9aacc7;--accent:#5798ff;--ok:#55d99a;--err:#ff7b91}
@@ -19,7 +19,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
 </head>
 <body>
 <div class="app">
-  <header><div class="brand">◆ MEVA CODE V13</div><div id="connection" class="muted">Desconectado</div></header>
+  <header><div class="brand">◆ MEVA CODE V15</div><div id="connection" class="muted">Desconectado</div></header>
   <main>
     <section id="view-login" class="view active">
       <div class="panel">
@@ -41,7 +41,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
           <div class="progress"><div id="uploadProgress"></div></div>
           <label>Instrução</label><textarea id="message" rows="3" placeholder="Ex.: Analise e corrija boot, kernel, drivers, vídeo, controle e build do Linux para Xbox 360…"></textarea>
           <div class="row"><select id="mode"><option value="agent">Agente</option><option value="chat">Chat</option><option value="resume">Retomar</option></select><select id="autonomy"><option value="auto">Auto · pode editar</option><option value="ask">Ask · plano</option><option value="safe">Safe · leitura</option></select></div>
-          <label>Modelo de IA</label><select id="provider"><option value="auto">Auto · NVIDIA primeiro</option><option value="nvidia">NVIDIA Nemotron 3 Ultra</option><option value="claude">Claude Sonnet 5</option><option value="openai">OpenAI GPT-6.1 Sol</option><option value="xai">Grok 4.7</option></select>
+          <label>Modelo de IA</label><select id="provider"><option value="auto">Auto · NVIDIA primeiro</option><option value="nvidia">NVIDIA GLM 5.3</option><option value="claude">Claude Sonnet 5.5</option><option value="openai">OpenAI GPT-6.1 Sol</option><option value="xai">Grok 4.7</option></select>
           <div class="checkrow"><input id="allowBuild" type="checkbox"><label for="allowBuild">Autorizo executar builds/testes. Scripts de build do ZIP podem executar código no runner.</label></div>
           <label>Limite de ações</label><select id="maxActions"><option value="30">30 · econômico</option><option value="60" selected>60 · recomendado</option><option value="80">80 · extenso</option></select>
           <button class="primary" id="send" style="margin-top:11px">Enviar para o MEVA</button>
@@ -63,7 +63,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
   const [owner,repo]=REPO_FULL.split('/');
   const $=id=>document.getElementById(id);
   const KEY='meva_v13_pat',CHAT='meva_v13_chat';
-  const WORKFLOW_NAME='MEVA CODE V13 — Linux ZIP Engineering Agent';
+  const WORKFLOW_NAME='MEVA CODE V15 — Linux ZIP Engineering Agent';
   let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null,repoSizeBytes=0;
   const say=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -192,6 +192,8 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
     for(let i=0;i<total;i++){
       const offset=i*GIT_CHUNK_SIZE,end=Math.min(f.size,offset+GIT_CHUNK_SIZE);
       const bytes=await f.slice(offset,end).arrayBuffer();
+      const digest=await crypto.subtle.digest('SHA-256',bytes);
+      const chunkSha=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
       const content=toBase64(bytes);
       const blob=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/blobs`,{
         method:'POST',timeoutMs:180000,body:JSON.stringify({content,encoding:'base64'})
@@ -199,7 +201,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
       if(!blob?.sha)throw Error('GitHub não retornou o SHA do bloco '+(i+1)+'.');
       const path='.meva-upload/'+uploadId+'/part-'+String(i).padStart(5,'0')+'.bin';
       entries.push({path,mode:'100644',type:'blob',sha:blob.sha});
-      parts.push({path,size:end-offset});
+      parts.push({path,size:end-offset,sha256:chunkSha});
       const percent=Math.round((end/f.size)*90);
       $('uploadProgress').style.width=percent+'%';
       say('Enviando ZIP por blocos: '+(i+1)+'/'+total+' · '+Math.round(end/1048576)+'/'+Math.ceil(f.size/1048576)+' MB');
@@ -218,9 +220,16 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
     await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs`,{
       method:'POST',timeoutMs:180000,body:JSON.stringify({ref:'refs/heads/'+uploadRef,sha:commit.sha})
     });
+    // Read-after-write: confirma o commit, a árvore e todos os blobs enviados.
+    const refCheck=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodeURIComponent(uploadRef)}`);
+    if(refCheck?.object?.sha!==commit.sha)throw Error('A branch temporária não aponta para o commit criado para este ZIP.');
+    const treeCheck=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${tree.sha}?recursive=1`);
+    if(treeCheck?.truncated)throw Error('A árvore temporária foi truncada pelo GitHub; upload não validado.');
+    const uploaded=new Map((treeCheck.tree||[]).filter(x=>x.type==='blob').map(x=>[x.path,x.sha]));
+    for(const entry of entries){if(uploaded.get(entry.path)!==entry.sha)throw Error('Verificação do bloco falhou: '+entry.path);}
     $('uploadProgress').style.width='100%';
     say('ZIP enviado e conferido em '+parts.length+' blocos.');
-    return JSON.stringify({transport:'git_chunks',upload_ref:uploadRef,upload_id:uploadId,name:safeName(f.name),size:f.size,chunk_size:GIT_CHUNK_SIZE,parts});
+    return JSON.stringify({transport:'git_chunks',upload_ref:uploadRef,upload_id:uploadId,commit_sha:commit.sha,name:safeName(f.name),size:f.size,chunk_size:GIT_CHUNK_SIZE,parts});
   }
   async function getRuns(){
     if(!workflowId)await resolveWorkflow();
@@ -260,7 +269,7 @@ nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-s
       const task=msg||(f?'Inspecione profundamente este projeto Linux, identifique problemas verificáveis e proponha/implemente correções coerentes. Preserve a arquitetura.':selectedMode==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':'');
       if(!task.trim()&&mode!=='self_test')throw Error('Descreva a tarefa.');
       messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';
-      const manifestData=manifest?JSON.parse(manifest):null;const uploadRef=manifestData?.upload_ref||'';pendingUploadRef=uploadRef;const runRef=uploadRef||br;const payload={ref:runRef,inputs:{mode,message:task,conversation_id:cid,branch:br,upload_ref:uploadRef,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
+      const manifestData=manifest?JSON.parse(manifest):null;const uploadRef=manifestData?.upload_ref||'';pendingUploadRef=uploadRef;const runRef=br;const payload={ref:runRef,inputs:{mode,message:task,conversation_id:cid,branch:br,upload_ref:uploadRef,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
       say('Enviando tarefa ao GitHub Actions…');
       await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify(payload)});
       pendingUploadRef='';
