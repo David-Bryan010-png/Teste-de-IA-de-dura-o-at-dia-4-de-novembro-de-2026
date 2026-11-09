@@ -268,11 +268,13 @@ jobs:
               const uploadId=Date.now().toString(36)+'-'+crypto.randomUUID().replace(/-/g,'').slice(0,12);
               const uploadRef='meva-upload-'+uploadId;
               const baseBranch=($('branch').value.trim()||branch);
-              const encodedRef=encodeURIComponent('heads/'+baseBranch);
+              // GitHub espera exatamente git/ref/heads/<branch>.
+              // Não duplicar 'heads/' nem codificar as barras estruturais da rota.
+              const encodedRef='heads/'+baseBranch.split('/').map(encodeURIComponent).join('/');
               say('Preparando transporte seguro pelo GitHub API…');
 
               // Descobre o commit-base e cria blobs de 16 MiB via api.github.com.
-              const refInfo=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodedRef}`);
+              const refInfo=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/${encodedRef}`);
               const parentSha=refInfo?.object?.sha;
               if(!parentSha)throw Error('Não foi possível identificar o commit da branch '+baseBranch+'.');
               const baseCommit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${parentSha}`);
