@@ -1,0 +1,22 @@
+{
+  "id": "0c22070c-cc1c-48dd-8af4-e09901691211",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Oi",
+      "created_at": "2026-11-09T21:35:29Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Oi! Como posso ajudar você hoje?",
+      "created_at": "2026-11-09T21:35:29Z"
+    }
+  ],
+  "provider": "nvidia",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "project_loaded": false,
+  "updated_at": "2026-11-09T21:35:29Z",
+  "autonomy": "auto",
+  "mode": "agent",
+  "status": "completed"
+}
