@@ -1,31 +1,21 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0a0f1a">
-  <title>MEVA CODE V13</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <style>
-    :root{color-scheme:dark;--bg:#090e18;--panel:#121b2c;--border:#2a3a55;--text:#e8f0ff;--muted:#91a3bf;--accent:#5b9cff;--ok:#4ade80;--err:#fb7185;--warn:#fbbf24;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden}
-    .app{display:flex;flex-direction:column;height:100dvh;max-width:620px;margin:0 auto}header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
-    .brand{font-weight:850;letter-spacing:.2px;font-size:15px}main{flex:1;overflow:auto;padding:12px}.view{display:none}.view.active{display:block}
-    .panel{background:var(--panel);border:1px solid var(--border);border-radius:15px;padding:14px;margin-bottom:12px}h1,h2{font-size:17px;margin:0 0 9px}
-    .muted{color:var(--muted);font-size:12px;line-height:1.45}label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
-    input,textarea,select,button{font:inherit;color:var(--text);background:#0c1423;border:1px solid var(--border);border-radius:10px;padding:12px;width:100%;font-size:14px}
-    button{background:#1b2943;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}button.primary{background:linear-gradient(135deg,#5b9cff,#3978ed);border:0;color:white}
-    .row{display:flex;gap:8px}.row>*{min-width:0;flex:1}.messages{height:38vh;min-height:190px;max-height:520px;overflow:auto;padding:8px;background:#0c1423;border:1px solid var(--border);border-radius:12px;margin:9px 0}
-    .bubble{max-width:96%;padding:10px 12px;border-radius:12px;margin:6px 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.user{background:#1e3a5f;margin-left:auto}.bubble.assistant{background:#172338}
-    nav{display:flex;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0}nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px;padding:13px 3px}nav button.active{color:var(--accent)}
-    .status{font-size:12px;color:var(--muted);min-height:18px;margin-top:8px}.status.ok{color:var(--ok)}.status.err{color:var(--err)}
-    .warning{border:1px solid #705b2c;background:#2a2211;color:#f4dda6;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;margin-top:10px}
-    .good{border:1px solid #285c45;background:#10271e;color:#a7f3d0;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;margin-top:10px}
-    .progress{height:7px;background:#26334a;border-radius:20px;overflow:hidden;margin-top:8px}.progress>div{height:100%;width:0;background:var(--accent);transition:width .15s}
-    .fileinfo{font-size:12px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}.convo div,.file-row{padding:10px 2px;border-bottom:1px solid var(--border);font-size:12px;overflow-wrap:anywhere}
-    .dl a,.link{color:#8bbcff;text-decoration:none}.checkrow{display:flex;align-items:center;gap:9px;margin-top:11px}.checkrow input{width:19px;height:19px;flex:0 0 auto}.checkrow label{margin:0;color:var(--text);font-size:12px}
-    @media(min-width:750px){.app{max-width:950px}.messages{height:50vh}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09111f">
+<title>MEVA CODE V13</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;--bg:#09111f;--panel:#121e31;--line:#2a3b56;--text:#edf4ff;--muted:#9aacc7;--accent:#5798ff;--ok:#55d99a;--err:#ff7b91}
+*{box-sizing:border-box}body{margin:0;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text)}.app{height:100dvh;max-width:760px;margin:auto;display:flex;flex-direction:column}
+header{padding:13px 15px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.brand{font-weight:850;letter-spacing:.3px}main{flex:1;overflow:auto;padding:12px}.view{display:none}.view.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:12px}h1,h2{font-size:17px;margin:0 0 9px}.muted{font-size:12px;color:var(--muted);line-height:1.5}label{display:block;margin:10px 0 5px;font-size:12px;color:var(--muted)}input,textarea,select,button{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1526;color:var(--text);font:inherit;font-size:14px}textarea{resize:vertical}button{background:#203451;font-weight:750;cursor:pointer}button.primary{background:linear-gradient(135deg,#5798ff,#3674df);border:0;color:white}button:disabled{opacity:.55;cursor:wait}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}.messages{height:40vh;min-height:200px;max-height:520px;overflow:auto;background:#0b1526;border:1px solid var(--line);border-radius:12px;padding:8px;margin:10px 0}.bubble{max-width:96%;padding:10px 12px;border-radius:12px;margin:6px 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.user{background:#203e64;margin-left:auto}.assistant{background:#17263c}.status{font-size:12px;min-height:19px;margin-top:8px;color:var(--muted)}.status.ok{color:var(--ok)}.status.err{color:var(--err)}
+.warning{padding:10px;border-radius:10px;border:1px solid #765c2b;background:#2a2213;color:#f6dda7;font-size:11px;line-height:1.5;margin-top:10px}.progress{height:7px;background:#27364c;border-radius:9px;overflow:hidden;margin-top:8px}.progress>div{height:100%;width:0;background:var(--accent)}.fileinfo{font-size:12px;color:var(--muted);overflow-wrap:anywhere;margin-top:5px}.good{font-size:11px;line-height:1.5;color:#b8e8ce;background:#10271e;border:1px solid #285940;border-radius:10px;padding:10px;margin-top:10px}
+nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-shrink:0}nav button{border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px;padding:13px 3px;flex:1}nav button.active{color:var(--accent)}.item{padding:10px 2px;border-bottom:1px solid var(--line);font-size:12px;overflow-wrap:anywhere}.link{color:#8dbbff;text-decoration:none}.checkrow{display:flex;align-items:center;gap:9px;margin-top:10px}.checkrow input{width:19px;height:19px;flex:0 0 auto}.checkrow label{margin:0;color:var(--text)}
+@media(min-width:800px){.app{max-width:980px}.messages{height:48vh}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -34,37 +24,35 @@
     <section id="view-login" class="view active">
       <div class="panel">
         <h1>Conectar ao GitHub</h1>
-        <p class="muted">Use um Fine-grained Personal Access Token do repositório: Contents (Read and write), Actions (Read and write) e Metadata (Read).</p>
-        <form id="loginForm"><label>GitHub token</label><input id="token" type="password" autocomplete="off" required><button class="primary" type="submit" style="margin-top:10px">Conectar</button></form>
+        <p class="muted">Fine-grained Personal Access Token do repositório: Contents (Read and write), Actions (Read and write) e Metadata (Read-only).</p>
+        <form id="loginForm"><label>GitHub token</label><input id="token" type="password" autocomplete="off" required><button class="primary" style="margin-top:10px">Conectar</button></form>
         <div id="loginStatus" class="status"></div>
-        <div class="warning">Privacidade: em repositório público, qualquer ZIP enviado para Releases poderá ser baixado por qualquer pessoa. Para código privado, use um repositório privado. Nunca cole sua chave NVIDIA nesta tela, no YAML ou em mensagens.</div>
+        <div class="warning">A chave fica somente na sessão desta aba. Em repositório público, os ZIPs enviados e os Releases podem ser baixados por qualquer pessoa. Use repositório privado para projetos privados. Nunca coloque chaves de IA nesta tela.</div>
       </div>
     </section>
     <section id="view-chat" class="view">
       <div class="panel">
-        <div class="row" style="align-items:center;justify-content:space-between"><h2>Agente de engenharia Linux</h2><button id="newChat" style="width:auto;padding:8px 11px">＋ Nova</button></div>
+        <div class="row" style="align-items:center"><h2 style="flex:2">Agente de engenharia Linux</h2><button id="newChat" style="flex:0 0 auto;width:auto;padding:8px 12px">＋ Nova</button></div>
         <div id="repoInfo" class="muted"></div>
         <div id="messages" class="messages"></div>
         <form id="composer">
-          <label>ZIP do Linux / projeto</label>
-          <input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed">
-          <div id="fileInfo" class="fileinfo">Selecione um ZIP para importar ou continue uma conversa anterior.</div>
+          <label>ZIP do Linux / projeto</label><input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed">
+          <div id="fileInfo" class="fileinfo">Selecione um ZIP para importar ou continue uma conversa.</div>
           <div class="progress"><div id="uploadProgress"></div></div>
-          <textarea id="message" rows="3" placeholder="Ex.: Analise e corrija o boot, drivers, vídeo, controle e build do meu Linux para Xbox 360…"></textarea>
-          <div class="row"><select id="mode"><option value="agent">Agente</option><option value="chat">Chat</option><option value="resume">Retomar tarefa</option></select><select id="autonomy"><option value="auto" selected>Auto · pode editar</option><option value="ask">Ask · somente plano</option><option value="safe">Safe · somente leitura</option></select></div>
-          <label>Modelo de IA</label>
-          <select id="provider"><option value="auto">Auto · NVIDIA primeiro</option><option value="nvidia">NVIDIA Nemotron 3 Ultra</option><option value="claude">Claude</option><option value="openai">OpenAI</option><option value="xai">Grok / xAI</option></select>
-          <div class="checkrow"><input id="allowBuild" type="checkbox"><label for="allowBuild">Permitir compilação, testes e comandos de build no projeto enviado</label></div>
-          <label>Limite de ações</label><select id="maxActions"><option value="30">30 · econômico</option><option value="60" selected>60 · recomendado</option><option value="80">80 · tarefa extensa</option></select>
-          <button class="primary" id="send" type="submit" style="margin-top:11px">Enviar para o MEVA</button>
+          <label>Instrução</label><textarea id="message" rows="3" placeholder="Ex.: Analise e corrija boot, kernel, drivers, vídeo, controle e build do Linux para Xbox 360…"></textarea>
+          <div class="row"><select id="mode"><option value="agent">Agente</option><option value="chat">Chat</option><option value="resume">Retomar</option></select><select id="autonomy"><option value="auto">Auto · pode editar</option><option value="ask">Ask · plano</option><option value="safe">Safe · leitura</option></select></div>
+          <label>Modelo de IA</label><select id="provider"><option value="auto">Auto · NVIDIA primeiro</option><option value="nvidia">NVIDIA Nemotron 3 Ultra</option><option value="claude">Claude Sonnet 5</option><option value="openai">OpenAI GPT-6.1 Sol</option><option value="xai">Grok 4.7</option></select>
+          <div class="checkrow"><input id="allowBuild" type="checkbox"><label for="allowBuild">Autorizo executar builds/testes. Scripts de build do ZIP podem executar código no runner.</label></div>
+          <label>Limite de ações</label><select id="maxActions"><option value="30">30 · econômico</option><option value="60" selected>60 · recomendado</option><option value="80">80 · extenso</option></select>
+          <button class="primary" id="send" style="margin-top:11px">Enviar para o MEVA</button>
         </form>
-        <div id="status" class="status">Pronto.</div><div id="downloadArea" class="dl"></div>
-        <div class="good">O MEVA pode importar o ZIP, mapear o projeto, editar código/configurações, criar e remover arquivos, executar verificações e devolver um ZIP completo atualizado com relatório e diferenças.</div>
+        <div id="status" class="status">Pronto.</div><div id="downloadArea"></div>
+        <div class="good">O agente trabalha em uma cópia isolada do ZIP, registra alterações e gera um pacote completo com relatório e diff. A compilação só é permitida quando você a autoriza.</div>
       </div>
     </section>
-    <section id="view-convos" class="view"><div class="panel"><h2>Conversas</h2><div id="convoList" class="convo">Carregando…</div><button id="refreshConvos" style="margin-top:10px">Atualizar</button></div></section>
+    <section id="view-convos" class="view"><div class="panel"><h2>Conversas</h2><div id="convoList" class="muted">Carregando…</div><button id="refreshConvos" style="margin-top:10px">Atualizar</button></div></section>
     <section id="view-files" class="view"><div class="panel"><h2>Arquivos do repositório MEVA</h2><div id="fileList" class="muted">Conecte-se.</div><button id="refreshFiles" style="margin-top:10px">Atualizar</button></div></section>
-    <section id="view-settings" class="view"><div class="panel"><h2>Configurações</h2><label>Branch</label><input id="branch" value="main"><p class="muted">Configure as chaves em Settings → Secrets and variables → Actions. Nome da chave NVIDIA: NVIDIA_API_KEY.</p><p><a id="secretLink" class="link" href="#" target="_blank" rel="noopener">Abrir GitHub Secrets</a></p><button id="logout" style="background:#3a1a1a">Desconectar</button></div></section>
+    <section id="view-settings" class="view"><div class="panel"><h2>Configurações</h2><label>Branch</label><input id="branch" value="main"><p class="muted">Cadastre as chaves em Settings → Secrets and variables → Actions. Secret NVIDIA: NVIDIA_API_KEY.</p><p><a id="secretLink" class="link" href="#" target="_blank" rel="noopener">Abrir GitHub Secrets</a></p><button id="logout" style="background:#421d27">Desconectar</button></div></section>
   </main>
   <nav><button data-view="chat">◉ Agente</button><button data-view="convos">▤ Conversas</button><button data-view="files">▣ Repo</button><button data-view="settings">⚙ Ajustes</button></nav>
 </div>
@@ -73,8 +61,10 @@
   'use strict';
   const REPO_FULL='David-Bryan010-png/Teste-de-IA-de-dura-o-at-dia-4-de-novembro-de-2026';
   const [owner,repo]=REPO_FULL.split('/');
-  const $=id=>document.getElementById(id),KEY='meva_v13_pat',CHAT='meva_v13_chat',WF='MEVA-INSTALADOR.yml';
-  let branch='main',cid='',busy=false,messages=[],isPrivate=false;
+  const $=id=>document.getElementById(id);
+  const KEY='meva_v13_pat',CHAT='meva_v13_chat';
+  const WORKFLOW_NAME='MEVA CODE V13 — Linux ZIP Engineering Agent';
+  let branch='main',cid='',busy=false,messages=[],isPrivate=false,workflowId=null;
   const say=(s,k='')=>{$('status').textContent=s;$('status').className='status '+k};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.querySelectorAll('nav button').forEach(e=>e.classList.remove('active'));$('view-'+v).classList.add('active');const b=document.querySelector(`nav button[data-view="${v}"]`);if(b)b.classList.add('active')}
@@ -82,33 +72,156 @@
   async function api(path,opt={}){
     const token=sessionStorage.getItem(KEY);if(!token)throw Error('Desconectado.');
     const prefix=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-    if(typeof path!=='string'||!path.startsWith(prefix))throw Error('Caminho de API inválido.');
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);let r;
+    if(typeof path!=='string'||!path.startsWith(prefix))throw Error('Caminho da API inválido.');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);let r;
     try{r=await fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{}),...(opt.headers||{})},signal:controller.signal,cache:'no-store'})}
-    catch(e){if(e.name==='AbortError')throw Error('Tempo esgotado no GitHub.');throw Error('Falha de rede/CORS: '+(e.message||''))}finally{clearTimeout(timer)}
-    if(r.status===204)return null;const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
-    if(!r.ok){const detail=(d&&d.message)||raw||'';if(r.status===401)throw Error('Token GitHub inválido ou expirado.');if(r.status===403)throw Error('GitHub 403: permissão ou limite de API. '+String(detail).slice(0,150));if(r.status===404)throw Error('Não encontrado. Confira o nome do workflow e o repositório.');throw Error('GitHub HTTP '+r.status+': '+String(detail).slice(0,200))}return d;
+    catch(e){if(e.name==='AbortError')throw Error('Tempo esgotado ao consultar o GitHub.');throw Error('Falha de rede/CORS: '+(e.message||''))}finally{clearTimeout(timer)}
+    if(r.status===204)return null;
+    const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
+    if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,280)}`)}
+    return d;
   }
-  function render(){const root=$('messages');root.replaceChildren();if(!messages.length){const d=document.createElement('div');d.className='muted';d.textContent='Envie um ZIP ou descreva o que deseja fazer.';root.append(d);return}for(const m of messages){const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'assistant');d.textContent=(m.role==='user'?'VOCÊ: ':'MEVA: ')+(m.content||'');root.append(d)}root.scrollTop=root.scrollHeight}
-  function decode64(v){const raw=atob(String(v||'').replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0)))}
+  async function resolveWorkflow(){
+    const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows?per_page=100`);
+    const found=(d.workflows||[]).find(w=>w.name===WORKFLOW_NAME&&w.state==='active');
+    if(!found)throw Error('Workflow não encontrado/ativo. Salve este YAML em .github/workflows/meva-code-v13.yml e execute install.');
+    workflowId=found.id;
+  }
+  function decode64(v){const raw=atob(String(v||'').replace(/\s/g,''));const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+  function render(){const root=$('messages');root.replaceChildren();if(!messages.length){const d=document.createElement('div');d.className='muted';d.textContent='Envie um ZIP ou descreva a tarefa.';root.append(d);return}for(const m of messages){const d=document.createElement('div');d.className='bubble '+(m.role==='user'?'user':'assistant');d.textContent=(m.role==='user'?'VOCÊ: ':'MEVA: ')+(m.content||'');root.append(d)}root.scrollTop=root.scrollHeight}
   function safeReleaseUrl(v){try{const u=new URL(v);return u.protocol==='https:'&&u.hostname==='github.com'&&u.pathname.startsWith('/'+owner+'/'+repo+'/releases/')?u.href:null}catch{return null}}
-  async function loadConversation(){if(!cid)return;try{const p=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations/${encodeURIComponent(cid)}.json?ref=${encodeURIComponent($('branch').value||branch)}`;const d=await api(p),o=JSON.parse(decode64(d.content));messages=Array.isArray(o.messages)?o.messages.filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-50):[];render();$('downloadArea').replaceChildren();const url=safeReleaseUrl(o.last_release);if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.className='link';a.textContent='⬇ Baixar ZIP Linux atualizado + relatório';$('downloadArea').append(a)}}catch(e){if(!String(e.message).includes('Não encontrado'))throw e;messages=[];render();$('downloadArea').replaceChildren()}}
-  async function connect(){const info=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);if(info.name.toLowerCase()!==repo.toLowerCase()||info.owner.login.toLowerCase()!==owner.toLowerCase())throw Error('Repositório divergente.');isPrivate=Boolean(info.private);branch=info.default_branch||'main';$('branch').value=branch;$('repoInfo').textContent=owner+'/'+repo+' · '+branch+' · '+(isPrivate?'Privado':'Público');$('secretLink').href=`https://github.com/${owner}/${repo}/settings/secrets/actions`;const q=new URLSearchParams(location.search).get('conversation'),stored=localStorage.getItem(CHAT);cid=(q&&/^[A-Za-z0-9_-]{8,80}$/.test(q))?q:(stored&&/^[A-Za-z0-9_-]{8,80}$/.test(stored)?stored:crypto.randomUUID());localStorage.setItem(CHAT,cid);await loadConversation();$('connection').textContent='Conectado';show('chat');say('Conectado ao GitHub.','ok')}
-  $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const t=$('token').value.trim();if(!t)return;sessionStorage.setItem(KEY,t);$('loginStatus').textContent='Verificando…';try{await connect();$('token').value='';$('loginStatus').textContent=''}catch(x){sessionStorage.removeItem(KEY);$('loginStatus').textContent=x.message}});
-  $('zipFile').addEventListener('change',()=>{const f=$('zipFile').files[0];if(!f){$('fileInfo').textContent='Selecione um ZIP para importar ou continue uma conversa anterior.';return}const mb=f.size/1048576;$('fileInfo').textContent=f.name+' · '+mb.toFixed(1)+' MB'+(mb>1800?' · acima do limite':'');if(!f.name.toLowerCase().endsWith('.zip'))say('Envie um arquivo .zip.','err');else if(f.size>1800*1024*1024)say('O limite por ZIP é 1,8 GB.','err');else say('ZIP pronto para envio.','ok')});
-  function safeName(n){n=String(n||'linux.zip').normalize('NFKC');if(/(^|[._-])(env|id_rsa|id_ed25519|secret|token|credential|private)([._-]|$)/i.test(n))throw Error('Nome de arquivo sensível bloqueado.');return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100)||'linux.zip'}
-  async function uploadZip(){const f=$('zipFile').files[0];if(!f)return '';if(!f.name.toLowerCase().endsWith('.zip'))throw Error('O arquivo precisa terminar em .zip.');if(f.size<=0||f.size>1800*1024*1024)throw Error('Limite do ZIP: 1,8 GB.');if(!isPrivate&&!confirm('Este repositório é PÚBLICO. O ZIP será publicado em um GitHub Release e poderá ser baixado por qualquer pessoa. Continue somente se o arquivo puder ser público.'))throw Error('Upload cancelado para proteger a privacidade.');
-    say('Criando área de upload…');const tag='meva-v13-up-'+cid+'-'+Date.now();const rel=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases`,{method:'POST',body:JSON.stringify({tag_name:tag,name:'MEVA V13 — projeto Linux enviado',body:'Arquivo de entrada enviado pelo proprietário do repositório.',draft:false,prerelease:true})});const base=String(rel.upload_url||'').replace(/\{\?name,label\}$/,'');if(!base.startsWith('https://uploads.github.com/'))throw Error('Endpoint de upload do GitHub inválido.');const name=safeName(f.name),url=base+'?name='+encodeURIComponent(name);say('Enviando ZIP: 0%');const asset=await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('POST',url);x.timeout=30*60*1000;x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));x.setRequestHeader('Accept','application/vnd.github+json');x.setRequestHeader('Content-Type','application/zip');x.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadProgress').style.width=p+'%';say('Enviando ZIP: '+p+'%')}};x.onload=()=>{let d;try{d=JSON.parse(x.responseText)}catch{}if(x.status>=200&&x.status<300&&d&&d.id)resolve(d);else reject(Error('Falha ao enviar ZIP: HTTP '+x.status+' '+(d&&d.message||'')))};x.onerror=()=>reject(Error('Conexão interrompida no upload.'));x.ontimeout=()=>reject(Error('Upload excedeu 30 minutos.'));x.send(f)});return JSON.stringify({release_id:rel.id,tag_name:tag,assets:[{asset_id:asset.id,name:asset.name,size:asset.size,content_type:asset.content_type}]});
+  async function loadConversation(){
+    if(!cid)return;
+    const p=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations/${encodeURIComponent(cid)}.json?ref=${encodeURIComponent($('branch').value||branch)}`;
+    try{
+      const d=await api(p),o=JSON.parse(decode64(d.content));
+      messages=Array.isArray(o.messages)?o.messages.filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-50):[];
+      render();$('downloadArea').replaceChildren();
+      const url=safeReleaseUrl(o.last_asset_url)||safeReleaseUrl(o.last_release);
+      if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.className='link';a.textContent='⬇ Abrir/baixar ZIP Linux atualizado';$('downloadArea').append(a)}
+    }catch(e){
+      if(String(e.message).includes('HTTP 404')){messages=[];render();$('downloadArea').replaceChildren();return}
+      throw e;
+    }
   }
-  async function getRuns(){const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${WF}/runs?event=workflow_dispatch&per_page=30`);return d.workflow_runs||[]}
-  async function waitRun(before,started,br){const end=Date.now()+125*60*1000;let n=0;while(Date.now()<end){const all=await getRuns();const r=all.find(x=>!before.has(x.id)&&x.head_branch===br&&Date.parse(x.created_at)>=started-90000&&String(x.display_title||'').includes(cid));if(r){const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${r.id}`);say('MEVA #'+r.run_number+' · '+d.status+(d.status==='completed'?' / '+d.conclusion:''));if(d.status==='completed'){if(d.conclusion!=='success')throw Error('Workflow terminou com '+d.conclusion+'. Abra GitHub → Actions para ver a falha.');return}}else say('Aguardando o runner do GitHub…');n++;await sleep(n<6?3000:9000)}throw Error('Tempo excedido. Consulte GitHub → Actions; a execução pode continuar no GitHub.')}
-  $('composer').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const msg=$('message').value.trim(),f=$('zipFile').files[0];if(!msg&&!f&&$('mode').value!=='resume')return;const br=$('branch').value.trim()||branch;if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..'))return say('Branch inválida.','err');busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();try{say('Verificando execuções…');const before=new Set((await getRuns()).map(x=>x.id));const manifest=await uploadZip();const mode=f?'linux_zip':$('mode').value;const task=msg||(f?'Inspecione profundamente este projeto Linux, encontre problemas reais e implemente as melhorias necessárias. Preserve a finalidade e a arquitetura do projeto.':($('mode').value==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':''));if(!task.trim())throw Error('Descreva a tarefa.');messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';const payload={ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:$('maxActions').value,attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${WF}/dispatches`,{method:'POST',body:JSON.stringify(payload)});$('zipFile').value='';$('fileInfo').textContent='ZIP processado ou aguardando o agente.';await waitRun(before,started,br);await loadConversation();say('Concluído.','ok')}catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}finally{busy=false;$('send').disabled=false}});
+  async function connect(){
+    const info=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+    if(info.name.toLowerCase()!==repo.toLowerCase()||info.owner.login.toLowerCase()!==owner.toLowerCase())throw Error('Repositório divergente.');
+    isPrivate=Boolean(info.private);branch=info.default_branch||'main';$('branch').value=branch;
+    $('repoInfo').textContent=owner+'/'+repo+' · '+branch+' · '+(isPrivate?'Privado':'Público');
+    $('secretLink').href=`https://github.com/${owner}/${repo}/settings/secrets/actions`;
+    await resolveWorkflow();
+    const q=new URLSearchParams(location.search).get('conversation'),stored=localStorage.getItem(CHAT);
+    cid=(q&&/^[A-Za-z0-9_-]{8,80}$/.test(q))?q:(stored&&/^[A-Za-z0-9_-]{8,80}$/.test(stored)?stored:crypto.randomUUID());
+    localStorage.setItem(CHAT,cid);await loadConversation();
+    $('connection').textContent='Conectado';show('chat');say('Conectado ao GitHub.','ok');
+  }
+  $('loginForm').addEventListener('submit',async e=>{
+    e.preventDefault();const t=$('token').value.trim();if(!t)return;
+    sessionStorage.setItem(KEY,t);$('loginStatus').textContent='Verificando token, repositório e workflow…';
+    try{await connect();$('token').value='';$('loginStatus').textContent=''}catch(x){sessionStorage.removeItem(KEY);$('connection').textContent='Falha';$('loginStatus').textContent=x.message}
+  });
+  $('zipFile').addEventListener('change',()=>{
+    const f=$('zipFile').files[0];if(!f){$('fileInfo').textContent='Selecione um ZIP para importar ou continue uma conversa.';return}
+    const mb=f.size/1048576;$('fileInfo').textContent=f.name+' · '+mb.toFixed(1)+' MB';
+    if(!f.name.toLowerCase().endsWith('.zip'))say('Envie um arquivo .zip.','err');
+    else if(f.size<=0||f.size>1800*1024*1024)say('O limite de entrada é 1,8 GB.','err');else say('ZIP pronto para envio.','ok');
+  });
+  function safeName(n){n=String(n||'linux.zip').normalize('NFKC');return n.replace(/[\\/]/g,'_').replace(/[^A-Za-z0-9._-]/g,'_').replace(/^\.+/,'').slice(0,100)||'linux.zip'}
+  async function uploadZip(){
+    const f=$('zipFile').files[0];if(!f)return '';
+    if(!f.name.toLowerCase().endsWith('.zip'))throw Error('O arquivo precisa terminar em .zip.');
+    if(f.size<=0||f.size>1800*1024*1024)throw Error('Limite de entrada: 1,8 GB.');
+    if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. O ZIP ficará disponível publicamente em Releases. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
+    const tag='meva-v13-upload-'+cid+'-'+Date.now();let release=null;
+    try{
+      say('Criando Release temporário…');
+      release=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases`,{method:'POST',body:JSON.stringify({tag_name:tag,name:'MEVA V13 — upload temporário',body:'Upload temporário do projeto Linux.',draft:true,prerelease:true})});
+      if(!release?.id||!release?.upload_url)throw Error('GitHub não retornou upload_url/Release ID.');
+      const base=release.upload_url.replace(/\{\?.*$/,'');const endpoint=new URL(base);
+      if(endpoint.protocol!=='https:'||endpoint.hostname!=='uploads.github.com')throw Error('Endpoint de upload inválido: '+endpoint.hostname);
+      endpoint.searchParams.set('name',safeName(f.name));
+      say('Enviando ZIP: 0%');
+      const asset=await new Promise((resolve,reject)=>{
+        const x=new XMLHttpRequest();x.open('POST',endpoint.toString(),true);x.timeout=30*60*1000;
+        x.setRequestHeader('Authorization','Bearer '+sessionStorage.getItem(KEY));
+        x.setRequestHeader('Accept','application/vnd.github+json');
+        x.setRequestHeader('X-GitHub-Api-Version','2022-11-28');
+        x.setRequestHeader('Content-Type','application/zip');
+        x.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadProgress').style.width=p+'%';say('Enviando ZIP: '+p+'%')}};
+        x.onload=()=>{let d={};try{d=JSON.parse(x.responseText)}catch{}if(x.status===201&&d.id&&d.state==='uploaded'&&Number(d.size)===f.size)resolve(d);else reject(Error('GitHub recusou o upload · HTTP '+x.status+' · '+(d.message||x.responseText||'resposta vazia')))};
+        x.onerror=()=>reject(Error('Falha de rede/CORS durante o upload. Verifique a conexão e tente novamente.'));
+        x.ontimeout=()=>reject(Error('Upload excedeu 30 minutos.'));x.onabort=()=>reject(Error('Upload interrompido.'));x.send(f);
+      });
+      say('Verificando asset e publicando Release…');
+      await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({draft:false,prerelease:true,name:'MEVA V13 — projeto Linux recebido'})});
+      $('uploadProgress').style.width='100%';
+      return JSON.stringify({release_id:Number(release.id),tag_name:tag,assets:[{asset_id:Number(asset.id),name:asset.name,size:Number(asset.size),content_type:asset.content_type}]});
+    }catch(err){
+      if(release?.id){try{await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${release.id}`,{method:'DELETE'})}catch(clean){console.warn('Falha ao remover Release incompleto:',clean)}}
+      throw err;
+    }
+  }
+  async function getRuns(){
+    if(!workflowId)await resolveWorkflow();
+    const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${workflowId}/runs?event=workflow_dispatch&per_page=30`);
+    return d.workflow_runs||[];
+  }
+  async function waitRun(started,br){
+    const end=Date.now()+125*60*1000;let tries=0;
+    while(Date.now()<end){
+      const runs=await getRuns();
+      const fresh=runs.filter(x=>x.head_branch===br&&Date.parse(x.created_at)>=started-8000);
+      const named=fresh.find(x=>String(x.display_title||'').includes(cid));
+      const r=named||fresh.sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];
+      if(r){
+        const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs/${r.id}`);
+        say('MEVA #'+r.run_number+' · '+d.status+(d.status==='completed'?' / '+d.conclusion:''));
+        if(d.status==='completed'){
+          if(d.conclusion!=='success')throw Error('Workflow terminou com '+d.conclusion+'. Consulte GitHub → Actions: '+(d.html_url||''));
+          return d;
+        }
+      }else say('Aguardando o runner do GitHub…');
+      tries++;await sleep(tries<8?3000:10000);
+    }
+    throw Error('Tempo de espera excedido. A execução pode continuar em GitHub → Actions.');
+  }
+  $('composer').addEventListener('submit',async e=>{
+    e.preventDefault();if(busy)return;
+    const msg=$('message').value.trim(),f=$('zipFile').files[0],selectedMode=$('mode').value;
+    if(!msg&&!f&&selectedMode!=='resume')return say('Escreva uma tarefa ou selecione um ZIP.','err');
+    const br=$('branch').value.trim()||branch;
+    if(!/^[A-Za-z0-9._/-]+$/.test(br)||br.includes('..')||br.startsWith('/')||br.endsWith('/'))return say('Branch inválida.','err');
+    busy=true;$('send').disabled=true;$('uploadProgress').style.width='0%';const started=Date.now();
+    try{
+      await resolveWorkflow();
+      const manifest=await uploadZip();
+      const mode=f?'linux_zip':selectedMode;
+      const task=msg||(f?'Inspecione profundamente este projeto Linux, identifique problemas verificáveis e proponha/implemente correções coerentes. Preserve a arquitetura.':selectedMode==='resume'?'Retome a tarefa anterior usando o último ZIP salvo.':'');
+      if(!task.trim()&&mode!=='self_test')throw Error('Descreva a tarefa.');
+      messages.push({role:'user',content:task+(f?'\n[ZIP enviado: '+f.name+']':'')});render();$('message').value='';
+      const payload={ref:br,inputs:{mode,message:task,conversation_id:cid,branch:br,max_actions:String($('maxActions').value),attachments:manifest,autonomy:$('autonomy').value,model_provider:$('provider').value,allow_build:$('allowBuild').checked?'true':'false'}};
+      say('Enviando tarefa ao GitHub Actions…');
+      await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify(payload)});
+      $('zipFile').value='';$('fileInfo').textContent='ZIP recebido; agente em execução.';
+      const run=await waitRun(started,br);await loadConversation();
+      say('Concluído. Execução #'+run.run_number,'ok');
+    }catch(x){say(x.message,'err');await loadConversation().catch(()=>{})}
+    finally{busy=false;$('send').disabled=false}
+  });
   $('newChat').addEventListener('click',()=>{cid=crypto.randomUUID();localStorage.setItem(CHAT,cid);messages=[];const u=new URL(location.href);u.searchParams.set('conversation',cid);history.replaceState({},'',u);render();$('downloadArea').replaceChildren();say('Nova conversa criada.')});
   $('logout').addEventListener('click',()=>{sessionStorage.removeItem(KEY);location.reload()});
-  $('refreshConvos').addEventListener('click',async()=>{const root=$('convoList');root.textContent='Carregando…';try{const p=`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations?ref=${encodeURIComponent($('branch').value||branch)}`;const d=await api(p);root.replaceChildren();for(const it of (d||[]).filter(x=>x.name&&x.name.endsWith('.json')).slice(-40).reverse()){const id=it.name.slice(0,-5);if(!/^[A-Za-z0-9_-]{8,80}$/.test(id))continue;const el=document.createElement('div');el.textContent=id;el.addEventListener('click',()=>{cid=id;localStorage.setItem(CHAT,cid);loadConversation().then(()=>show('chat')).catch(e=>say(e.message,'err'))});root.append(el)}if(!root.childNodes.length)root.textContent='Nenhuma conversa.'}catch(x){root.textContent=x.message}});
-  $('refreshFiles').addEventListener('click',async()=>{const root=$('fileList');root.textContent='Carregando…';try{const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent($('branch').value||branch)}?recursive=1`);root.replaceChildren();for(const f of (d.tree||[]).filter(x=>x.type==='blob').slice(0,400)){const el=document.createElement('div');el.className='file-row';el.textContent=f.path;root.append(el)}if(!root.childNodes.length)root.textContent='Nenhum arquivo.'}catch(e){root.textContent=e.message}});
+  $('refreshConvos').addEventListener('click',async()=>{
+    const root=$('convoList');root.textContent='Carregando…';
+    try{const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/meva-data/conversations?ref=${encodeURIComponent($('branch').value||branch)}`);root.replaceChildren();for(const it of (d||[]).filter(x=>x.name&&x.name.endsWith('.json')).slice(-50).reverse()){const id=it.name.slice(0,-5);if(!/^[A-Za-z0-9_-]{8,80}$/.test(id))continue;const el=document.createElement('div');el.className='item';el.textContent=id;el.addEventListener('click',()=>{cid=id;localStorage.setItem(CHAT,cid);loadConversation().then(()=>show('chat')).catch(e=>say(e.message,'err'))});root.append(el)}if(!root.childNodes.length)root.textContent='Nenhuma conversa.'}catch(x){root.textContent=x.message}
+  });
+  $('refreshFiles').addEventListener('click',async()=>{
+    const root=$('fileList');root.textContent='Carregando…';
+    try{const d=await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent($('branch').value||branch)}?recursive=1`);root.replaceChildren();for(const f of (d.tree||[]).filter(x=>x.type==='blob').slice(0,500)){const el=document.createElement('div');el.className='item';el.textContent=f.path;root.append(el)}if(!root.childNodes.length)root.textContent='Nenhum arquivo.'}catch(e){root.textContent=e.message}
+  });
   $('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('composer').requestSubmit()}});
   if(sessionStorage.getItem(KEY))connect().catch(e=>{sessionStorage.removeItem(KEY);$('connection').textContent='Falha';$('loginStatus').textContent=e.message;show('login')});
 })();
 </script>
-</body></html>
+</body>
+</html>
