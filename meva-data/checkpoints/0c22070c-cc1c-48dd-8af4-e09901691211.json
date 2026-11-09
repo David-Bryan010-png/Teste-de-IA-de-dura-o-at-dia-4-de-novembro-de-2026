@@ -1,7 +1,7 @@
 {
   "conversation_id": "0c22070c-cc1c-48dd-8af4-e09901691211",
   "actions": 0,
-  "updated_at": "2026-11-09T21:39:23Z",
+  "updated_at": "2026-11-09T21:43:51Z",
   "project_loaded": false,
   "completed": false,
   "status": "failed",
@@ -10,9 +10,9 @@
   "model": "",
   "pending_upload": {
     "transport": "git_files",
-    "upload_ref": "meva-upload-mw9s7k8z-ca14ff0035a8",
-    "upload_id": "mw9s7k8z-ca14ff0035a8",
-    "commit_sha": "128f0b0b80a890eb592965a81b171adb0970b850",
-    "manifest_blob_sha": "e14f7ee2a3af14f965b100a58d81daa4ee81fc04"
+    "upload_ref": "meva-upload-mw9secs3-f5705a7e31cb",
+    "upload_id": "mw9secs3-f5705a7e31cb",
+    "commit_sha": "811b145d8d55d57827f1442f3296ea7cf8647c67",
+    "manifest_blob_sha": "de5bfc22e704b5ceb08f71f9119ab481278a76cd"
   }
 }
