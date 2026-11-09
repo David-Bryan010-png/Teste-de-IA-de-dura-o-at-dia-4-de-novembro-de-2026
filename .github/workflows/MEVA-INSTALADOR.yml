@@ -183,7 +183,7 @@ jobs:
               }finally{clearTimeout(timer)}
               if(r.status===204)return null;
               const raw=await r.text();let d=null;try{d=raw?JSON.parse(raw):null}catch{}
-              if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,350)}`)}
+              if(!r.ok){const detail=(d&&d.message)||raw||r.statusText;const method=(request.method||'GET').toUpperCase();throw Error(`GitHub HTTP ${r.status}: ${String(detail).slice(0,260)} [${method} ${path}]`)}
               return d;
             }
             async function apiRetry(path,opt={},maxAttempts=4){
@@ -263,20 +263,25 @@ jobs:
               if(f.size>limit){
                 throw Error('Upload por navegador limitado a '+(limit/1048576).toFixed(0)+' MB neste repositório. O transporte temporário usa objetos Git; o GitHub recomenda manter o repositório abaixo de 1 GB. Para um ZIP maior, use Git LFS ou um armazenamento externo com upload CORS.');
               }
-              if(!isPrivate&&!confirm('ATENÇÃO: o repositório é PÚBLICO. As partes temporárias do ZIP ficarão acessíveis publicamente enquanto o workflow executa. Continuar?'))throw Error('Upload cancelado para proteger a privacidade.');
+              // Sem popup de confirmação: o aviso permanece visível, mas o envio prossegue automaticamente.
+              if(!isPrivate)say('Aviso: repositório público — o ZIP temporário ficará visível publicamente durante o processamento.');
 
               const uploadId=Date.now().toString(36)+'-'+crypto.randomUUID().replace(/-/g,'').slice(0,12);
               const uploadRef='meva-upload-'+uploadId;
               const baseBranch=($('branch').value.trim()||branch);
-              // GitHub espera exatamente git/ref/heads/<branch>.
-              // Não duplicar 'heads/' nem codificar as barras estruturais da rota.
+              // A API matching-refs devolve uma lista; fazemos comparação exata
+              // para não confundir, por exemplo, 'main' com 'main-old'.
               const encodedRef='heads/'+baseBranch.split('/').map(encodeURIComponent).join('/');
-              say('Preparando transporte seguro pelo GitHub API…');
+              say('Localizando a branch-base '+baseBranch+'…');
 
-              // Descobre o commit-base e cria blobs de 16 MiB via api.github.com.
-              const refInfo=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/${encodedRef}`);
-              const parentSha=refInfo?.object?.sha;
-              if(!parentSha)throw Error('Não foi possível identificar o commit da branch '+baseBranch+'.');
+              // GET /git/matching-refs/ evita um 404 genérico quando o nome da branch
+              // está incorreto e permite identificar a referência exata.
+              const matchingRefs=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/matching-refs/${encodedRef}`);
+              const expectedRef='refs/heads/'+baseBranch;
+              const baseRef=Array.isArray(matchingRefs)?matchingRefs.find(x=>x&&x.ref===expectedRef):null;
+              const parentSha=baseRef?.object?.sha;
+              if(!parentSha)throw Error('A branch-base "'+baseBranch+'" não foi encontrada no repositório. Confira o nome em Ajustes → Branch.');
+              say('Branch-base encontrada. Preparando transporte pelo GitHub API…');
               const baseCommit=await apiRetry(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${parentSha}`);
               const baseTree=baseCommit?.tree?.sha;
               if(!baseTree)throw Error('Não foi possível identificar a árvore Git da branch-base.');
