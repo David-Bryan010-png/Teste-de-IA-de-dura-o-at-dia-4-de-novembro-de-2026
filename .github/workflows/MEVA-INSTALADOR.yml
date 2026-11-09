@@ -582,8 +582,53 @@ jobs:
           BUILD_COMMANDS={'make','cmake','ninja','meson','python3','gcc','g++','clang','clang++','ld','ld.lld','as','powerpc-linux-gnu-gcc','powerpc-linux-gnu-g++','powerpc-linux-gnu-ld','powerpc64-linux-gnu-gcc','powerpc64-linux-gnu-g++','powerpc64-linux-gnu-ld','dtc','bison','flex','perl','cargo','go','node','npm','ctest','pytest','pkg-config','autoreconf','configure','tar','unzip','zip','cpio','rsync','gzip','xz','zstd','makeinfo'}
           SYMLINKS={}
           BASELINE_DIR=WORK/'baseline'
+          AUDIT=[]
+          AUDIT_PATH=WORK/'MEVA-ACTIONS.json'
+          ERROR_PATH=WORK/'MEVA-ERROR.md'
 
           def log(s): print('[MEVA] '+str(s),flush=True)
+
+          def redact_text(value):
+              text=str(value)
+              text=re.sub(r'(?i)(authorization|api[_-]?key|access[_-]?token|password|secret)\s*[:=]\s*[^\s,;]+',r'\1=[REDACTED]',text)
+              text=re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|nvapi-[A-Za-z0-9_-]{20,})\b','[REDACTED_TOKEN]',text)
+              return text[:2400]
+
+          def audit_target(action):
+              for key in ('path','source','destination','directory'):
+                  value=action.get(key)
+                  if isinstance(value,str) and value:
+                      return key+'='+value[:240]
+              command=action.get('command')
+              return 'command='+redact_text(command)[:240] if isinstance(command,str) and command else ''
+
+          def persist_audit():
+              try:
+                  WORK.mkdir(parents=True,exist_ok=True)
+                  tmp=AUDIT_PATH.with_suffix('.tmp')
+                  tmp.write_text(json.dumps({'schema':1,'events':AUDIT},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                  tmp.replace(AUDIT_PATH)
+              except Exception as exc:
+                  log('Não foi possível gravar a auditoria intermediária: '+redact_text(exc))
+
+          def audit_result(value):
+              if not isinstance(value,dict):
+                  return {'type':type(value).__name__,'length':len(str(value))}
+              keep=('ok','exit_code','timeout','error','written','bytes','replacements','deleted','moved_from','moved_to','extracted_files','unpacked_bytes','destination','entries_total','total_size','next_offset','size','mode','sha256','file_count','symlink_count','languages','architecture_hints','files','matches','results')
+              result={}
+              for key in keep:
+                  if key not in value: continue
+                  item=value[key]
+                  if isinstance(item,str): result[key]=redact_text(item)
+                  elif isinstance(item,(int,float,bool)) or item is None: result[key]=item
+                  elif isinstance(item,list):
+                      result[key+'_count']=len(item)
+                      if key=='files': result['files_sample']=[redact_text(x) for x in item[:20] if isinstance(x,str)]
+                  elif isinstance(item,dict): result[key]={str(k):redact_text(v) if isinstance(v,str) else v for k,v in list(item.items())[:30] if isinstance(v,(str,int,float,bool)) or v is None}
+              if 'output' in value and isinstance(value['output'],str):
+                  output=redact_text(value['output'])
+                  result['output_tail']=output[-1200:]
+              return result
           def api_url(path): return 'https://api.github.com/repos/'+GH_REPO+path
 
           def gh_request(path,accept='application/vnd.github+json',timeout=300):
@@ -1153,16 +1198,33 @@ jobs:
                           except Exception: pass
               return changes,'\n'.join(chunks)[:5_000_000]
 
-          def create_package(answer,actions,before):
+          def create_package(answer,actions,before,events=None,error=None):
+              events=list(events if events is not None else AUDIT)
               changes,diff=make_diff(before)
               files=inventory(MAX_FILES)
-              report=['# MEVA V13 — Relatório de engenharia Linux','',f'- Modelo: {PROVIDER}',f'- Modo: {MODE}',f'- Autonomia: {AUTONOMY}',f'- Build autorizado: {ALLOW_BUILD}',f'- Ações executadas: {actions}',f'- Arquivos regulares no projeto: {len(files)}',f'- Arquivos adicionados/alterados/removidos: {len(changes)}','','## Resultado',answer,'','## Arquivos alterados']
-              report.extend([f"- {x['status']}: `{x['path']}`" for x in changes[:2000]] or ['- Nenhuma alteração de arquivo detectada.'])
-              report += ['','## Limitações','- O pacote contém a árvore completa do projeto, além do relatório, manifesto e diff.','- Arquivos sensíveis conhecidos e diretórios .git/cache são excluídos.','- Symlinks são preservados como entradas simbólicas do ZIP; links absolutos não são materializados no runner.','- Build só é executado com autorização explícita; scripts de build do projeto podem executar código no runner.','- Nenhum resultado de compilação é declarado como sucesso sem código de saída zero.']
+              failed=[x for x in events if x.get('status') in ('error','failed')]
+              report=['# MEVA V13 — Relatório de engenharia Linux','',f'- Estado: {"PARCIAL / COM ERRO" if error else "EXECUÇÃO CONCLUÍDA"}',f'- Modelo: {PROVIDER}',f'- Modo: {MODE}',f'- Autonomia: {AUTONOMY}',f'- Build autorizado: {ALLOW_BUILD}',f'- Ações tentadas: {actions}',f'- Ações com erro: {len(failed)}',f'- Arquivos regulares no projeto: {len(files)}',f'- Arquivos adicionados/alterados/removidos: {len(changes)}','','## Resultado',answer]
+              if error: report += ['','## Erro que interrompeu a execução',redact_text(error)]
+              report += ['','## Registro das ferramentas']
+              if events:
+                  for event in events[:1000]:
+                      summary=json.dumps(event.get('result',{}),ensure_ascii=False)[:900]
+                      detail=' — '+event.get('target','') if event.get('target') else ''
+                      if event.get('error'): summary='erro: '+event['error']
+                      report.append(f"- #{event.get('index','?')} `{event.get('tool','?')}` — **{event.get('status','?')}**{detail} {summary}".rstrip())
+              else: report.append('- Nenhuma ação de ferramenta foi registrada.')
+              report += ['','## Arquivos alterados']
+              report.extend([f"- {x['status']}: `{x['path']}`" for x in changes[:2000]] or ['- Nenhuma alteração real de arquivo foi detectada.'])
+              report += ['','## Limitações','- O diff textual é limitado a arquivos pequenos; mudanças binárias aparecem no manifesto pela lista de arquivos e hashes.','- Arquivos sensíveis conhecidos e diretórios .git/cache são excluídos.','- Symlinks são preservados como entradas simbólicas do ZIP; links absolutos não são materializados no runner.','- Build só é executado com autorização explícita; scripts de build do projeto podem executar código no runner.','- Nenhum resultado de compilação é declarado como sucesso sem código de saída zero.']
               report_text='\n'.join(report)+'\n'
               (WORK/'MEVA-REPORT.md').write_text(report_text,encoding='utf-8')
               (WORK/'MEVA-CHANGES.diff').write_text(diff or '# Nenhum diff textual disponível.\n',encoding='utf-8')
-              (WORK/'MEVA-MANIFEST.json').write_text(json.dumps({'version':'13','provider':PROVIDER,'changes':changes},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              (WORK/'MEVA-MANIFEST.json').write_text(json.dumps({'version':'13','provider':PROVIDER,'changes':changes,'actions':events,'error':redact_text(error) if error else None},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              (WORK/'MEVA-ACTIONS.json').write_text(json.dumps({'schema':1,'events':events},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              if error:
+                  ERROR_PATH.write_text('# MEVA V13 — Execução interrompida\n\n'+redact_text(error)+'\n',encoding='utf-8')
+              else:
+                  ERROR_PATH.unlink(missing_ok=True)
               out=Path('/tmp/MEVA-LINUX-PROJECT-V13.zip'); out.unlink(missing_ok=True)
               already_compressed={'.gz','.xz','.zst','.bz2','.zip','.7z','.png','.jpg','.jpeg','.webp','.mp4','.mkv','.elf','.bin','.cpio','.so','.a','.o','.pdf'}
               with zipfile.ZipFile(out,'w',allowZip64=True) as z:
@@ -1183,11 +1245,14 @@ jobs:
                       info=zipfile.ZipInfo('linux-project/'+link_name); info.create_system=3
                       info.external_attr=(stat.S_IFLNK|0o777)<<16; info.compress_type=zipfile.ZIP_STORED
                       z.writestr(info,link_target.encode('utf-8','replace'))
-                  for name in ('MEVA-REPORT.md','MEVA-CHANGES.diff','MEVA-MANIFEST.json'):
-                      z.write(WORK/name,name,compress_type=zipfile.ZIP_DEFLATED)
+                  for name in ('MEVA-REPORT.md','MEVA-CHANGES.diff','MEVA-MANIFEST.json','MEVA-ACTIONS.json','MEVA-ERROR.md'):
+                      item=WORK/name
+                      if item.is_file(): z.write(item,name,compress_type=zipfile.ZIP_DEFLATED)
               if out.stat().st_size>MAX_UPLOAD: raise RuntimeError('ZIP de saída excede o limite de 1,8 GB.')
               return {'path':str(out),'size':out.stat().st_size,'changed_files':len(changes),'report':report_text}
 
+          history={'id':CID,'messages':[]}
+          before={}; done=0; answer=''; package=None
           try:
               STATE.parent.mkdir(parents=True,exist_ok=True); CHECKPOINT.parent.mkdir(parents=True,exist_ok=True); WORK.mkdir(exist_ok=True); INBOX.mkdir(exist_ok=True)
               history={'id':CID,'messages':[]}
@@ -1241,6 +1306,7 @@ jobs:
                       if isinstance(m,dict) and m.get('role') in ('user','assistant') and isinstance(m.get('content'),str): prior.append({'role':m['role'],'content':m['content'][-3500:]})
                   msgs=[{'role':'system','content':system}]+prior+[{'role':'user','content':USER}]
                   done=0; started=time.time(); max_seconds=105*60 if MODE in ('agent','linux_zip','resume') else 12*60; malformed=0; answer=''
+                  AUDIT.clear(); ERROR_PATH.unlink(missing_ok=True); persist_audit()
                   while done<MAX_ACTIONS and time.time()-started<max_seconds:
                       raw=ask_api(msgs,tokens=14000)
                       try: obj=extract_json(raw); actions=obj['actions']; reply=obj.get('reply',''); malformed=0
@@ -1252,15 +1318,31 @@ jobs:
                       if not actions: answer=reply or 'Tarefa concluída.'; break
                       results=[]
                       for action in actions[:min(4,MAX_ACTIONS-done)]:
-                          try: result=tool(action); results.append({'tool':action.get('type'),'result':result})
-                          except Exception as exc: results.append({'tool':action.get('type') if isinstance(action,dict) else 'unknown','error':str(exc)[:1600]})
-                          done+=1
-                      log('Ações concluídas: '+str(done)+'/'+str(MAX_ACTIONS))
+                          kind=action.get('type') if isinstance(action,dict) else 'unknown'
+                          event={'index':done+1,'tool':str(kind)[:80],'target':audit_target(action) if isinstance(action,dict) else '', 'status':'running','started_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+                          AUDIT.append(event); persist_audit()
+                          try:
+                              result=tool(action)
+                              event['status']='failed' if isinstance(result,dict) and result.get('ok') is False else 'success'
+                              event['result']=audit_result(result)
+                              results.append({'tool':kind,'result':result})
+                          except Exception as exc:
+                              event['status']='error'; event['error']=redact_text(exc)
+                              results.append({'tool':kind,'error':redact_text(exc)})
+                          event['finished_at']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+                          persist_audit(); done+=1
+                      log('Ações concluídas: '+str(done)+'/'+str(MAX_ACTIONS)+'; falhas registradas: '+str(sum(1 for x in AUDIT if x.get('status') in ('error','failed'))))
                       msgs.extend([{'role':'assistant','content':raw[:14000]},{'role':'user','content':'Resultados reais das ferramentas: '+json.dumps(results,ensure_ascii=False)[:20000]+'. Continue, corrija falhas e finalize somente após verificar o estado.'}])
                       if len(msgs)>18: msgs=msgs[:2]+msgs[-10:]
                       answer=reply or answer
                   if not answer: answer='Limite de ações ou tempo atingido. Resultado parcial; revise o relatório e use Retomar para continuar.'
-                  if PROJECT.is_dir(): answer+='\n\nResumo do projeto: '+json.dumps(project_info(),ensure_ascii=False)[:4000]
+                  if PROJECT.is_dir():
+                      answer+='\n\nResumo do projeto: '+json.dumps(project_info(),ensure_ascii=False)[:4000]
+                      verified_changes,_=make_diff(before)
+                      answer+='\n\nALTERAÇÕES VERIFICADAS: '
+                      answer+=('; '.join(x['status']+': '+x['path'] for x in verified_changes[:80]) if verified_changes else 'nenhuma alteração real detectada nos arquivos do projeto.')
+                  if AUDIT:
+                      answer+='\n\nAUDITORIA: '+str(len(AUDIT))+' ações registradas; '+str(sum(1 for x in AUDIT if x.get('status') in ('error','failed')))+' com erro/falha. Consulte MEVA-REPORT.md e MEVA-ACTIONS.json no ZIP.'
               stamp=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
               prev=history.get('messages',[])
               if not isinstance(prev,list): prev=[]
@@ -1275,12 +1357,56 @@ jobs:
               log('PROVIDER='+PROVIDER+' ACTIONS='+str(done)+' BUILD='+str(ALLOW_BUILD)+' PACKAGE='+str(bool(package)))
               if package: log('PACKAGE_SIZE='+str(package['size'])+' CHANGED='+str(package['changed_files']))
           except Exception as exc:
-              print('MEVA_FATAL: '+str(exc)[:3000],file=sys.stderr)
+              error_text=type(exc).__name__+': '+str(exc)
+              error_text=redact_text(error_text)
+              log('MEVA_FATAL: '+error_text)
+              try:
+                  WORK.mkdir(parents=True,exist_ok=True)
+                  persist_audit()
+                  ERROR_PATH.write_text('# MEVA V13 — Execução interrompida\n\n'+error_text+'\n',encoding='utf-8')
+                  if PROJECT.is_dir():
+                      partial_answer=(answer or 'O agente foi interrompido antes de produzir uma resposta final.')+'\n\nA execução foi interrompida por erro. O pacote, quando disponível, é PARCIAL e não deve ser considerado validado.'
+                      try:
+                          package=create_package(partial_answer,done,before,AUDIT,error_text)
+                          log('PACOTE_PARCIAL_GERADO: '+str(package.get('size',0))+' bytes')
+                      except Exception as package_exc:
+                          log('FALHA_AO_GERAR_PACOTE_PARCIAL: '+redact_text(package_exc))
+                  stamp=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+                  previous=history.get('messages',[]) if isinstance(history,dict) else []
+                  if not isinstance(previous,list): previous=[]
+                  previous=previous[-36:]
+                  failure_message='EXECUÇÃO INTERROMPIDA: '+error_text+'\nAções de ferramenta registradas: '+str(len(AUDIT))+'. Verifique MEVA-ACTIONS.json e MEVA-ERROR.md nos diagnósticos da execução.'
+                  if previous and isinstance(previous[-1],dict) and previous[-1].get('role')=='assistant':
+                      previous[-1]['content']=(str(previous[-1].get('content',''))+'\n\n'+failure_message)[:12000]
+                  else:
+                      previous.extend([{'role':'user','content':USER or 'Execução do MEVA V13','created_at':stamp},{'role':'assistant','content':failure_message,'created_at':stamp}])
+                  history.update({'id':CID,'updated_at':stamp,'provider':PROVIDER,'autonomy':AUTONOMY,'allow_build':ALLOW_BUILD,'mode':MODE,'status':'failed','last_error':error_text,'messages':previous})
+                  STATE.parent.mkdir(parents=True,exist_ok=True); CHECKPOINT.parent.mkdir(parents=True,exist_ok=True)
+                  STATE.write_text(json.dumps(history,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                  CHECKPOINT.write_text(json.dumps({'conversation_id':CID,'actions':done,'updated_at':stamp,'project_loaded':PROJECT.is_dir(),'status':'failed','error':error_text,'audit_events':len(AUDIT)},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              except Exception as preserve_exc:
+                  log('FALHA_AO_PRESERVAR_RESULTADO_PARCIAL: '+redact_text(preserve_exc))
+              print('MEVA_FATAL: '+error_text,file=sys.stderr)
               raise
           PY
 
           python3 -m py_compile /tmp/meva-v13.py
           python3 /tmp/meva-v13.py | tee /tmp/meva-v13-output.txt
+
+      - name: Salvar diagnóstico e ZIP parcial mesmo quando houver falha
+        if: ${{ always() && (failure() || cancelled()) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: MEVA-V13-DIAGNOSTICO-${{ github.run_id }}
+          path: |
+            /tmp/meva-v13-output.txt
+            /tmp/MEVA-LINUX-PROJECT-V13.zip
+            meva-workspace/MEVA-REPORT.md
+            meva-workspace/MEVA-ACTIONS.json
+            meva-workspace/MEVA-ERROR.md
+            meva-data/checkpoints/${{ inputs.conversation_id || format('run-{0}', github.run_id) }}.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Publicar ZIP Linux completo atualizado
         id: publish
