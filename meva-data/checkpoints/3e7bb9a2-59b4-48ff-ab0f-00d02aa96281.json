@@ -1,11 +1,18 @@
 {
   "conversation_id": "3e7bb9a2-59b4-48ff-ab0f-00d02aa96281",
   "actions": 0,
-  "updated_at": "2026-11-09T18:42:35Z",
-  "project_loaded": true,
+  "updated_at": "2026-11-09T20:43:47Z",
+  "project_loaded": false,
   "completed": false,
   "status": "failed",
-  "error": "NameError: name 'prior' is not defined",
-  "audit_events": 0,
-  "summary": ""
+  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip",
+  "provider": "",
+  "model": "",
+  "pending_upload": {
+    "transport": "git_files",
+    "upload_ref": "meva-upload-mw9q9qap-535aed1072a1",
+    "upload_id": "mw9q9qap-535aed1072a1",
+    "commit_sha": "38800b1474b61ade7b566da168b82053c9b50a17",
+    "manifest_blob_sha": "a6d1e254d7d8477e53339c180563f4cd8588f6da"
+  }
 }

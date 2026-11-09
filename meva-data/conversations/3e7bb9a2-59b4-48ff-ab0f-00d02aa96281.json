@@ -10,6 +10,14 @@
       "role": "assistant",
       "content": "EXECUÇÃO INTERROMPIDA: NameError: name 'prior' is not defined\nAções de ferramenta registradas: 0. Verifique MEVA-ACTIONS.json e MEVA-ERROR.md nos diagnósticos da execução.",
       "created_at": "2026-11-09T18:42:35Z"
+    },
+    {
+      "role": "user",
+      "content": "Compile o projeto!"
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip"
     }
   ],
   "source_archive": null,
@@ -32,11 +40,19 @@
   "project_loaded_at": "2026-11-09T18:42:35Z",
   "project_loaded": true,
   "project_file_count": 236,
-  "updated_at": "2026-11-09T18:42:35Z",
-  "provider": "nvidia",
+  "updated_at": "2026-11-09T20:43:47Z",
+  "provider": "",
   "autonomy": "auto",
   "allow_build": true,
   "mode": "linux_zip",
   "status": "failed",
-  "last_error": "NameError: name 'prior' is not defined"
+  "last_error": "RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip",
+  "pending_upload": {
+    "transport": "git_files",
+    "upload_ref": "meva-upload-mw9q9qap-535aed1072a1",
+    "upload_id": "mw9q9qap-535aed1072a1",
+    "commit_sha": "38800b1474b61ade7b566da168b82053c9b50a17",
+    "manifest_blob_sha": "a6d1e254d7d8477e53339c180563f4cd8588f6da"
+  },
+  "model": ""
 }
