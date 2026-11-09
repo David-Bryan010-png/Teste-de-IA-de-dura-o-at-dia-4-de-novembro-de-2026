@@ -1,0 +1,42 @@
+{
+  "id": "3e7bb9a2-59b4-48ff-ab0f-00d02aa96281",
+  "messages": [
+    {
+      "role": "user",
+      "content": "compile o arquivo.",
+      "created_at": "2026-11-09T18:42:35Z"
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: NameError: name 'prior' is not defined\nAções de ferramenta registradas: 0. Verifique MEVA-ACTIONS.json e MEVA-ERROR.md nos diagnósticos da execução.",
+      "created_at": "2026-11-09T18:42:35Z"
+    }
+  ],
+  "source_archive": null,
+  "original_upload": {
+    "transport": "git_chunks",
+    "upload_ref": "meva-upload-mw9ly681-018e1c8908e2",
+    "upload_id": "mw9ly681-018e1c8908e2",
+    "commit_sha": "1fe6296f79d09def3a064b1d3da1cefcf1d232e5",
+    "name": "XWT-Linux-source.zip",
+    "size": 1506236,
+    "chunk_size": 16777216,
+    "parts": [
+      {
+        "path": ".meva-upload/mw9ly681-018e1c8908e2/part-00000.bin",
+        "size": 1506236,
+        "sha256": "b21f8fe8e2dc04ebaf9bca16f90d6156f042114f3cfbe14fea3120e01f4a5584"
+      }
+    ]
+  },
+  "project_loaded_at": "2026-11-09T18:42:35Z",
+  "project_loaded": true,
+  "project_file_count": 236,
+  "updated_at": "2026-11-09T18:42:35Z",
+  "provider": "nvidia",
+  "autonomy": "auto",
+  "allow_build": true,
+  "mode": "linux_zip",
+  "status": "failed",
+  "last_error": "NameError: name 'prior' is not defined"
+}

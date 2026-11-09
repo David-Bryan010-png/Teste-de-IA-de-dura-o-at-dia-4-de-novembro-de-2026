@@ -1,0 +1,11 @@
+{
+  "conversation_id": "3e7bb9a2-59b4-48ff-ab0f-00d02aa96281",
+  "actions": 0,
+  "updated_at": "2026-11-09T18:42:35Z",
+  "project_loaded": true,
+  "completed": false,
+  "status": "failed",
+  "error": "NameError: name 'prior' is not defined",
+  "audit_events": 0,
+  "summary": ""
+}
