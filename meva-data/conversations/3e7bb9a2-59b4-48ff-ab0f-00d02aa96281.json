@@ -18,6 +18,14 @@
     {
       "role": "assistant",
       "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip"
+    },
+    {
+      "role": "user",
+      "content": "Analise o YML e o projeto XWT Linux, corrija todos os erros, execute a compilação para Xbox 360 (PowerPC Xenon), valide os arquivos e gere um ZIP inicializável. Não simule sucesso."
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: build-xex-from-zip.yml"
     }
   ],
   "source_archive": null,
@@ -40,19 +48,19 @@
   "project_loaded_at": "2026-11-09T18:42:35Z",
   "project_loaded": true,
   "project_file_count": 236,
-  "updated_at": "2026-11-09T20:43:47Z",
+  "updated_at": "2026-11-09T20:49:42Z",
   "provider": "",
   "autonomy": "auto",
   "allow_build": true,
   "mode": "linux_zip",
   "status": "failed",
-  "last_error": "RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip",
+  "last_error": "RuntimeError: Bloco não pertence ao commit do upload: build-xex-from-zip.yml",
   "pending_upload": {
     "transport": "git_files",
-    "upload_ref": "meva-upload-mw9q9qap-535aed1072a1",
-    "upload_id": "mw9q9qap-535aed1072a1",
-    "commit_sha": "38800b1474b61ade7b566da168b82053c9b50a17",
-    "manifest_blob_sha": "a6d1e254d7d8477e53339c180563f4cd8588f6da"
+    "upload_ref": "meva-upload-mw9qh73s-3de40c73e3b9",
+    "upload_id": "mw9qh73s-3de40c73e3b9",
+    "commit_sha": "8cd74d4955fd547a60362e25925938d36643c7eb",
+    "manifest_blob_sha": "95f192bad9ecfc9a9f1802cfd0a56b9b9aa5c412"
   },
   "model": ""
 }
