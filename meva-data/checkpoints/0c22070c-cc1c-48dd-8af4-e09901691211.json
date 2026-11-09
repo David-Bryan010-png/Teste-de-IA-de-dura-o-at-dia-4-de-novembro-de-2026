@@ -1,12 +1,18 @@
 {
   "conversation_id": "0c22070c-cc1c-48dd-8af4-e09901691211",
   "actions": 0,
-  "updated_at": "2026-11-09T21:35:29Z",
+  "updated_at": "2026-11-09T21:39:23Z",
   "project_loaded": false,
-  "completed": true,
-  "status": "completed",
-  "summary": "Oi! Como posso ajudar você hoje?",
-  "provider": "nvidia",
-  "model": "nvidia/nemotron-3-ultra-550b-a55b",
-  "pending_upload": null
+  "completed": false,
+  "status": "failed",
+  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: Bloco não pertence ao commit do upload: XWT-Linux-source.zip",
+  "provider": "",
+  "model": "",
+  "pending_upload": {
+    "transport": "git_files",
+    "upload_ref": "meva-upload-mw9s7k8z-ca14ff0035a8",
+    "upload_id": "mw9s7k8z-ca14ff0035a8",
+    "commit_sha": "128f0b0b80a890eb592965a81b171adb0970b850",
+    "manifest_blob_sha": "e14f7ee2a3af14f965b100a58d81daa4ee81fc04"
+  }
 }
