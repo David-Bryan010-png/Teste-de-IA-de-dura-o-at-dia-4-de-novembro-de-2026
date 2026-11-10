@@ -1,0 +1,20 @@
+{
+  "conversation_id": "3c0ef034-1272-4738-bbe8-7746d833948d",
+  "actions": 32,
+  "updated_at": "2026-11-10T02:47:45Z",
+  "project_loaded": true,
+  "completed": false,
+  "status": "partial",
+  "summary": "Tentando listar o conteúdo do ZIP via python3 sem pipes nem caminhos complexos.\n\nResumo verificável: {\"root\": \"meva-workspace/linux-project\", \"file_count\": 2, \"total_bytes\": 1575453, \"largest_files\": [{\"path\": \"XWT-Linux-source.zip\", \"size\": 1508043}, {\"path\": \"build-xex-from-zip.yml\", \"size\": 67410}], \"sample_files\": [\"XWT-Linux-source.zip\", \"build-xex-from-zip.yml\"], \"important_files\": [], \"languages\": {}, \"symlink_count\": 0, \"inventory_limit\": 100000}\nAlterações detectadas: nenhuma alteração detectada.\n\nValidação: a tarefa solicitou compilação, mas não há build bem-sucedido registrado (pode não ter sido autorizado ou executado). Não será declarada compilação concluída.\n\nAuditoria: 32 ações; 25 falhas registradas.",
+  "provider": "nvidia",
+  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+  "pending_upload": {
+    "transport": "git_files",
+    "upload_ref": "meva-upload-mwa36fd9-4a0f0c796221",
+    "upload_id": "mwa36fd9-4a0f0c796221",
+    "commit_sha": "56860ffa4e1bccb2910fb4101cd2b89d94ac0dc2",
+    "manifest_blob_sha": "fbeee217e323a94757b4043eb0379b1c43f56183",
+    "manifest_sha256": "f53944b263ba826c13678a472da7ca39bbf1dd0dd13e4ffdfc56ae41b7639514",
+    "manifest_size": 608
+  }
+}
