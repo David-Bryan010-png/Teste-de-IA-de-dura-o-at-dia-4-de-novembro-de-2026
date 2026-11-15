@@ -1,0 +1,12 @@
+{
+  "conversation_id": "run-43689697737",
+  "actions": 0,
+  "updated_at": "2026-11-15T07:23:23Z",
+  "project_loaded": false,
+  "completed": true,
+  "status": "completed",
+  "summary": "Autoteste: texto OK (MEVA V19 API operacional); tool calling nativo: OK [nvidia/nvidia/nemotron-3.5-lightning-30b-a3b]",
+  "provider": "nvidia",
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "pending_upload": null
+}
