@@ -1,0 +1,12 @@
+{
+  "conversation_id": "8d53c92d-d751-4309-ba1a-1eca3b96875a",
+  "actions": 0,
+  "updated_at": "2026-11-17T23:45:44Z",
+  "project_loaded": false,
+  "completed": false,
+  "status": "failed",
+  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão.",
+  "provider": "",
+  "model": "",
+  "pending_upload": null
+}
