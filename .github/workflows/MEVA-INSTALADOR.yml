@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "install | chat | agent | linux_zip | self_test | resume | eval"
+        description: "install | chat | agent | linux_zip | self_test | resume | eval | video"
         type: choice
-        options: [install, chat, agent, linux_zip, self_test, resume, eval]
+        options: [install, chat, agent, linux_zip, self_test, resume, eval, video]
         default: install
         required: true
       message:
@@ -155,7 +155,25 @@ jobs:
           <section id="view-convos" class="view"><div class="panel"><h2>Conversas</h2><div id="convoList" class="muted">Carregando…</div><button id="refreshConvos" style="margin-top:10px">Atualizar</button></div></section>
           <section id="view-files" class="view"><div class="panel"><h2>Arquivos do repositório MEVA</h2><div id="fileList" class="muted">Conecte-se.</div><button id="refreshFiles" style="margin-top:10px">Atualizar</button></div></section>
           <section id="view-settings" class="view"><div class="panel"><h2>Configurações</h2><label>Branch de trabalho</label><input id="branch"><p class="muted">Cadastre as chaves nos GitHub Secrets. Nunca coloque chaves de IA na interface.</p><p><a id="secretLink" class="link" href="#" target="_blank" rel="noopener">Abrir GitHub Secrets</a></p><button id="logout" style="background:#421d27">Desconectar</button></div></section>
-          </main><nav><button data-view="chat">◉ Agente</button><button data-view="convos">▤ Conversas</button><button data-view="files">▣ Repo</button><button data-view="settings">⚙ Ajustes</button></nav>
+          <section id="view-video" class="view"><div class="panel">
+          <h2>Vídeo · NVIDIA Cosmos 3 Nano</h2>
+          <div class="muted">Mecanismo independente do chat e dos provedores de IA. A chave NVIDIA_API_KEY fica nos GitHub Secrets (nunca passa pelo navegador). Um vídeo só aparece como sucesso depois que o MP4 real é recebido, gravado e validado.</div>
+          <form id="vidForm" autocomplete="off" novalidate>
+          <label>Modelo</label><select id="vidModel"><option value="nvidia/cosmos3-nano">NVIDIA Cosmos 3 Nano · nvidia/cosmos3-nano</option></select>
+          <label>Modo</label><select id="vidMode"><option value="text2video">Texto → vídeo (text2video)</option><option value="image2video" disabled>Imagem → vídeo (image2video) · em breve, ainda não verificado</option></select>
+          <label>Prompt (obrigatório)</label><textarea id="vidPrompt" rows="4" maxlength="9500" placeholder="Descreva a cena, o movimento da câmera, a luz e o estilo…"></textarea><div id="vidPromptCount" class="muted"></div>
+          <label>Prompt negativo (opcional)</label><textarea id="vidNeg" rows="2" maxlength="1500"></textarea>
+          <div class="row"><div><label>Resolução</label><select id="vidRes"></select></div><div><label>FPS (1–60)</label><input id="vidFps" type="number" min="1" max="60" step="1" value="24"></div></div>
+          <div class="row"><div><label id="vidFramesLabel">Frames</label><input id="vidFrames" type="number" step="1" value="49"></div><div><label>Seed (opcional)</label><input id="vidSeed" type="number" min="0" max="2147483647" step="1" placeholder="aleatória"></div></div>
+          <div class="row"><div><label>Passos (1–100)</label><input id="vidSteps" type="number" min="1" max="100" step="1" value="50"></div><div><label>Guidance (1–7)</label><input id="vidGuid" type="number" min="1" max="7" step="0.1" value="4"></div><div><label>Flow shift</label><input id="vidShift" type="number" min="0.1" step="0.1" value="3"></div></div>
+          <div id="vidSummary" class="muted"></div>
+          <button class="primary" id="vidSend" style="margin-top:11px">Gerar vídeo</button></form>
+          <div id="vidStatus" class="status">Pronto.</div><div id="vidResult"></div>
+          <div class="row" style="align-items:center;margin-top:14px"><h2 style="flex:2">Vídeos gerados</h2><button id="vidRefresh" style="flex:0 0 auto;width:auto">Atualizar</button></div>
+          <div id="vidList" class="muted">Conecte-se.</div>
+          <div class="good">Limites da documentação oficial: prompt até 20000 caracteres (aqui até 9500, por causa do limite de 12000 do parâmetro do workflow), fps 1–60, passos 1–100, guidance 1–7, frames 25–397 (tier 256), 25–297 (480) e 25–197 (720). A geração é síncrona e pode levar vários minutos; a conta NVIDIA pode cobrar por requisição.</div>
+          </div></section>
+          </main><nav><button data-view="chat">◉ Agente</button><button data-view="convos">▤ Conversas</button><button data-view="files">▣ Repo</button><button data-view="video">▶ Vídeo</button><button data-view="settings">⚙ Ajustes</button></nav>
           </div><script>
           (()=>{'use strict';
           const REPO_FULL='REPO_PLACEHOLDER',[owner,repo]=REPO_FULL.split('/'),$=id=>document.getElementById(id);
@@ -186,6 +204,67 @@ jobs:
           $('refreshConvos').addEventListener('click',async()=>{const root=$('convoList');root.textContent='Carregando…';try{const d=await api(`${repoPath}/contents/meva-data/conversations?ref=${encodeURIComponent($('branch').value||branch)}`);root.replaceChildren();for(const it of (d||[]).filter(x=>x.name&&x.name.endsWith('.json')).slice(-60).reverse()){const id=it.name.slice(0,-5);if(!/^[A-Za-z0-9_-]{8,80}$/.test(id))continue;const el=document.createElement('div');el.className='item';el.textContent=id;el.addEventListener('click',()=>{cid=id;localStorage.setItem(CHAT,cid);loadConversation().then(()=>show('chat')).catch(x=>say(x.message,'err'))});root.append(el)}if(!root.childNodes.length)root.textContent='Nenhuma conversa.'}catch(x){root.textContent=x.message}});
           $('refreshFiles').addEventListener('click',async()=>{const root=$('fileList');root.textContent='Carregando…';try{const d=await api(`${repoPath}/git/trees/${encodeURIComponent($('branch').value||branch)}?recursive=1`);root.replaceChildren();for(const f of (d.tree||[]).filter(x=>x.type==='blob').slice(0,500)){const el=document.createElement('div');el.className='item';el.textContent=f.path;root.append(el)}if(d.truncated)root.append(document.createTextNode(' · Lista truncada pelo GitHub.'));if(!root.childNodes.length)root.textContent='Nenhum arquivo.'}catch(x){root.textContent=x.message}});
           $('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('composer').requestSubmit()}});if(sessionStorage.getItem(KEY))connect().catch(e=>{sessionStorage.removeItem(KEY);$('connection').textContent='Falha';$('loginStatus').textContent=e.message;show('login')});
+          /* ---- Vídeo (NVIDIA Cosmos 3 Nano): independente do chat ---- */
+          const VID_MODEL='nvidia/cosmos3-nano',VID_TIERS=['256','480','720'],VID_ASPECTS=['','_16_9','_1_1','_9_16','_4_3','_3_4'];
+          const VID_FRAMES={'256':[25,397],'480':[25,297],'720':[25,197]},VID_MSG_LIMIT=11500;
+          let vidBusy=false,vidUrl=null;
+          const vidSay=(s,k='')=>{$('vidStatus').textContent=s;$('vidStatus').className='status '+k};
+          (function initVideoForm(){const sel=$('vidRes'),AL={'':'auto','_16_9':'16:9','_1_1':'1:1','_9_16':'9:16','_4_3':'4:3','_3_4':'3:4'},DIMS={'480_16_9':' (832×480)','720_16_9':' (1280×720)','480_1_1':' (640×640)'};for(const t of VID_TIERS)for(const a of VID_ASPECTS){const o=document.createElement('option');o.value=t+a;o.textContent=t+'p · '+AL[a]+(DIMS[t+a]||'');sel.append(o)}sel.value='480_16_9'})();
+          function vidTier(){return $('vidRes').value.split('_')[0]}
+          function vidFrameLimits(){const [lo,hi]=VID_FRAMES[vidTier()];return {lo,hi}}
+          function vidUpdateLimits(){const {lo,hi}=vidFrameLimits(),f=$('vidFrames');f.min=lo;f.max=hi;$('vidFramesLabel').textContent=`Frames (${lo}–${hi})`;const n=Number(f.value),fps=Number($('vidFps').value);$('vidSummary').textContent=(Number.isFinite(n)&&Number.isFinite(fps)&&fps>0)?`≈ ${(n/fps).toFixed(1)} s de vídeo`:'';$('vidPromptCount').textContent=`${$('vidPrompt').value.length}/9500`}
+          for(const id of ['vidRes','vidFps','vidFrames','vidPrompt'])$(id).addEventListener('input',vidUpdateLimits);vidUpdateLimits();
+          function vidParams(){const errs=[],num=(id)=>$(id).value.trim()===''?null:Number($(id).value),int=(v)=>Number.isInteger(v);
+          const prompt=$('vidPrompt').value,neg=$('vidNeg').value.trim(),fps=num('vidFps'),frames=num('vidFrames'),steps=num('vidSteps'),guid=num('vidGuid'),shift=num('vidShift'),seed=num('vidSeed'),res=$('vidRes').value,{lo,hi}=vidFrameLimits();
+          if(!prompt.trim())errs.push('O prompt é obrigatório e não pode ser só espaços.');if(prompt.length>9500)errs.push('Prompt acima de 9500 caracteres.');
+          if(fps===null||!(fps>=1&&fps<=60))errs.push('FPS deve estar entre 1 e 60.');
+          if(frames===null||!int(frames)||frames<lo||frames>hi)errs.push(`Frames deve ser inteiro entre ${lo} e ${hi} para a resolução ${vidTier()}.`);
+          if(steps===null||!int(steps)||steps<1||steps>100)errs.push('Passos deve ser inteiro entre 1 e 100.');
+          if(guid===null||!(guid>=1&&guid<=7))errs.push('Guidance deve estar entre 1 e 7.');
+          if(shift===null||!(shift>0&&shift<=100))errs.push('Flow shift deve ser um número positivo.');
+          if(seed!==null&&(!int(seed)||seed<0||seed>2147483647))errs.push('Seed deve ser inteiro entre 0 e 2147483647.');
+          if($('vidMode').value!=='text2video')errs.push('Somente text2video está disponível nesta versão.');
+          const p={model:VID_MODEL,model_mode:'text2video',prompt,resolution:res,fps,num_frames:frames,num_inference_steps:steps,guidance_scale:guid,flow_shift:shift};if(neg)p.negative_prompt=neg;if(seed!==null)p.seed=seed;
+          if(!errs.length&&JSON.stringify(p).length>VID_MSG_LIMIT)errs.push('Prompt + prompt negativo grandes demais para o parâmetro do workflow (limite de 12000 caracteres).');
+          return {errs,p}}
+          async function vidFetchRaw(path){const token=sessionStorage.getItem(KEY);if(!token)throw Error('Desconectado.');const r=await fetch('https://api.github.com'+path,{headers:{Accept:'application/vnd.github.raw+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'},cache:'no-store'});if(!r.ok)throw Error('GitHub HTTP '+r.status+' ao baixar o vídeo.');return r}
+          async function vidLoadRecord(id,br){const d=await api(`${repoPath}/contents/meva-data/videos/${encodeURIComponent(id)}.json?ref=${encodeURIComponent(br)}`);const rec=JSON.parse(decode64(d.content));if(!rec||typeof rec!=='object'||rec.id!==id)throw Error('Registro do vídeo inválido.');return rec}
+          async function vidSha256(buf){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buf)),b=>b.toString(16).padStart(2,'0')).join('')}
+          function vidEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e}
+          async function vidShow(rec,br){const root=$('vidResult');root.replaceChildren();if(vidUrl){URL.revokeObjectURL(vidUrl);vidUrl=null}
+          const box=vidEl('div','','panel'),req=rec.request||{};
+          const meta=()=>{const m=vidEl('div',`${rec.id} · ${req.resolution||'?'} · ${req.num_frames||'?'} frames @ ${req.fps||'?'} fps · seed ${req.seed??'?'} · ${req.num_inference_steps||'?'} passos`,'muted');box.append(m)};
+          if(rec.status!=='done'||rec.success!==true){const err=rec.error||{};const t=vidEl('div',(rec.status==='unknown'?'⚠ Resultado desconhecido: ':'✖ Nenhum vídeo foi gerado: ')+(err.message||'falha sem detalhe.'),'status err');box.append(t);meta();box.append(vidEl('div','Tipo do erro: '+(err.kind||rec.status)+(err.http_status?' · HTTP '+err.http_status:'')+(rec.http&&rec.http.request_id?' · request-id '+rec.http.request_id:''),'muted'));root.append(box);return}
+          const note=vidEl('div','Baixando e conferindo o arquivo no repositório…','status');box.append(note);root.append(box);
+          try{const r=await vidFetchRaw(`${repoPath}/contents/meva-data/videos/${encodeURIComponent(rec.file||rec.id+'.mp4')}?ref=${encodeURIComponent(br)}`),buf=await r.arrayBuffer();
+          if(!Number.isInteger(rec.bytes)||buf.byteLength!==rec.bytes)throw Error(`Tamanho divergente (${buf.byteLength} ≠ ${rec.bytes}). O arquivo não foi aceito.`);
+          const sig=new Uint8Array(buf.slice(4,8));if(String.fromCharCode(...sig)!=='ftyp')throw Error('O arquivo baixado não é um MP4 (sem ftyp).');
+          const sha=await vidSha256(buf);if(sha!==rec.sha256)throw Error('SHA-256 divergente: o arquivo baixado não é o validado pelo servidor.');
+          const blob=new Blob([buf],{type:'video/mp4'});vidUrl=URL.createObjectURL(blob);
+          const v=document.createElement('video');v.controls=true;v.playsInline=true;v.preload='metadata';v.style.cssText='width:100%;max-height:70vh;background:#000;border-radius:10px';v.src=vidUrl;
+          const play=vidEl('div','Verificando reprodução no navegador…','muted');
+          v.addEventListener('loadedmetadata',()=>{play.textContent=(v.videoWidth>0&&v.duration>0)?`✔ Reproduz neste navegador (${v.videoWidth}×${v.videoHeight}, ${v.duration.toFixed(2)} s)`:'⚠ O navegador abriu o arquivo mas não reportou dimensões/duração.'});
+          v.addEventListener('error',()=>{play.textContent='⚠ Este navegador não reproduziu o vídeo (VP9 em MP4 pode não ser suportado). O arquivo está íntegro: baixe e abra em outro player.'});
+          note.textContent='✔ MP4 real recebido e validado · integridade SHA-256 conferida';note.className='status ok';
+          box.append(v,play);meta();
+          const val=rec.validation||{};box.append(vidEl('div',`Servidor: ${val.width}×${val.height}, ${val.frames} frames, ${val.duration_s} s, codec ${val.codec}, ${(rec.bytes/1048576).toFixed(2)} MiB · decodificação: ${(val.decode&&val.decode.status)||'?'} · sha256 ${rec.sha256.slice(0,16)}…`,'muted'));
+          for(const w of (val.warnings||[]))box.append(vidEl('div','⚠ '+w,'muted'));
+          const row=vidEl('div','','row');row.style.marginTop='10px';
+          const dl=document.createElement('a');dl.href=vidUrl;dl.download=`cosmos3-nano-${rec.id}.mp4`;dl.className='link';dl.textContent='⬇ Baixar MP4';
+          const saved=document.createElement('a');saved.href=`https://github.com/${owner}/${repo}/blob/${br.split('/').map(encodeURIComponent).join('/')}/meva-data/videos/${encodeURIComponent(rec.file||rec.id+'.mp4')}`;saved.target='_blank';saved.rel='noopener';saved.className='link';saved.textContent='▣ Salvo no repositório (meva-data/videos)';
+          row.append(dl,saved);box.append(row)}
+          catch(x){note.textContent='✖ Não foi possível confirmar o vídeo: '+x.message;note.className='status err'}}
+          async function vidWait(started,br,id){const end=Date.now()+125*60*1000;let n=0,runUrl='';while(Date.now()<end){const runs=await getRuns(),fresh=runs.filter(x=>x.head_branch===br&&Date.parse(x.created_at)>=started-10000),r=fresh.find(x=>String(x.display_title||'').includes(id));if(r){runUrl=r.html_url||'';const d=await api(`${repoPath}/actions/runs/${r.id}`);let step='';if(d.status!=='completed'){try{const jb=await api(`${repoPath}/actions/runs/${r.id}/jobs`),st=(jb.jobs||[]).flatMap(j=>j.steps||[]).find(s=>s.status==='in_progress');if(st)step=' · '+st.name}catch(_){}}vidSay(`Geração #${r.run_number} · ${d.status}${d.status==='completed'?' / '+d.conclusion:''}${step} · ${Math.round((Date.now()-started)/1000)} s`);if(d.status==='completed')return {conclusion:d.conclusion,url:d.html_url||runUrl}}else vidSay('Aguardando runner do GitHub…');n++;await sleep(n<8?4000:10000)}throw Error('Tempo de acompanhamento excedido. A execução pode continuar em GitHub Actions.')}
+          $('vidForm').addEventListener('submit',async e=>{e.preventDefault();if(vidBusy||busy)return;const {errs,p}=vidParams();if(errs.length)return vidSay(errs.join(' '),'err');const br=$('branch').value.trim()||branch;if(!validBranch(br))return vidSay('Branch inválida.','err');
+          vidBusy=true;$('vidSend').disabled=true;$('vidResult').replaceChildren();const id='vid-'+crypto.randomUUID().replace(/-/g,'').slice(0,16),started=Date.now();
+          try{await resolveWorkflow();vidSay('Enviando a requisição ao GitHub Actions…');await api(`${repoPath}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify({ref:br,inputs:{mode:'video',message:JSON.stringify(p),conversation_id:id,branch:br,autonomy:'safe',model_provider:'auto',model_id:'',allow_build:'false',max_actions:'30'}})});
+          const run=await vidWait(started,br,id);let rec=null,lastErr=null;for(let i=0;i<12&&!rec;i++){try{rec=await vidLoadRecord(id,br)}catch(x){lastErr=x;await sleep(5000)}}
+          if(!rec){vidSay('Nenhum registro do vídeo foi encontrado'+(run.conclusion!=='success'?'; o workflow terminou com '+run.conclusion+'. Consulte: '+run.url:'.')+(lastErr?' ('+lastErr.message+')':''),'err');return}
+          await vidShow(rec,br);if(rec.status==='done'&&rec.success===true)vidSay('Concluído: vídeo validado.','ok');else vidSay(rec.status==='unknown'?'Resultado desconhecido: a NVIDIA pode ter processado a requisição.':'Falhou: nenhum vídeo foi gerado.','err');vidList()}
+          catch(x){vidSay(x.message,'err')}finally{vidBusy=false;$('vidSend').disabled=false}});
+          async function vidList(){const root=$('vidList');root.textContent='Carregando…';const br=$('branch').value||branch;try{let d=[];try{d=await api(`${repoPath}/contents/meva-data/videos?ref=${encodeURIComponent(br)}`)}catch(x){if(!/404/.test(String(x.message)))throw x}root.replaceChildren();const items=(d||[]).filter(x=>x.name&&x.name.endsWith('.json')&&/^vid-[A-Za-z0-9_-]{4,80}\.json$/.test(x.name)).slice(-20).reverse();for(const it of items){const id=it.name.slice(0,-5),el=vidEl('div',id,'item');el.style.cursor='pointer';el.addEventListener('click',async()=>{try{vidSay('Carregando registro…');const rec=await vidLoadRecord(id,br);await vidShow(rec,br);vidSay('')}catch(x){vidSay(x.message,'err')}});root.append(el)}if(!root.childNodes.length)root.textContent='Nenhum vídeo gerado ainda.'}catch(x){root.textContent=x.message}}
+          $('vidRefresh').addEventListener('click',vidList);
+          document.querySelector('nav button[data-view="video"]').addEventListener('click',()=>{if(sessionStorage.getItem(KEY))vidList()});
           })();</script></body></html>
           HTML
           python3 - <<'PY'
@@ -369,7 +448,7 @@ jobs:
 
   ai:
     name: Executar agente MEVA V19
-    if: ${{ inputs.mode == 'chat' || inputs.mode == 'agent' || inputs.mode == 'linux_zip' || inputs.mode == 'self_test' || inputs.mode == 'resume' || inputs.mode == 'eval' }}
+    if: ${{ inputs.mode == 'chat' || inputs.mode == 'agent' || inputs.mode == 'linux_zip' || inputs.mode == 'self_test' || inputs.mode == 'resume' || inputs.mode == 'eval' || inputs.mode == 'video' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 140
     permissions:
@@ -393,14 +472,14 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/__init__.py' <<'MEVA_EOF_255645'
+          cat > '/tmp/meva-agent-src/meva/__init__.py' <<'MEVA_EOF_720097'
           """MEVA CODE V19 — agente de engenharia verificável (pacote testável)."""
           from .util import VERSION
 
           __all__ = ['VERSION']
-          MEVA_EOF_255645
+          MEVA_EOF_720097
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/__main__.py' <<'MEVA_EOF_486444'
+          cat > '/tmp/meva-agent-src/meva/__main__.py' <<'MEVA_EOF_858905'
           """Ponto de entrada: `python -m meva` (chamado pelo workflow)."""
           from __future__ import annotations
 
@@ -706,15 +785,18 @@ jobs:
               if cfg.mode == 'eval':
                   from .evals import run_evals
                   return run_evals(cfg)
+              if cfg.mode == 'video':  # mecanismo NVIDIA VIDEO: independente do LLM, das conversas e dos provedores de chat
+                  from .video import run_video
+                  return run_video(cfg)
               run(cfg)
               return 0
 
 
           if __name__ == '__main__':
               sys.exit(main())
-          MEVA_EOF_486444
+          MEVA_EOF_858905
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/agent.py' <<'MEVA_EOF_26481'
+          cat > '/tmp/meva-agent-src/meva/agent.py' <<'MEVA_EOF_805172'
           """Loop do agente com tool calling nativo, execução paralela, portão de conclusão e subagentes.
 
           Loop de correção forçado pelo runtime (não depende do modelo "lembrar"):
@@ -1088,9 +1170,9 @@ jobs:
                   s.record_event('verifier', verdict['verdict'], 'success' if verdict['verdict'] != 'FAIL' else 'failed',
                                  result={'verdict': verdict['verdict'], 'findings': verdict.get('findings', [])}, agent='verifier')
                   return verdict
-          MEVA_EOF_26481
+          MEVA_EOF_805172
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/config.py' <<'MEVA_EOF_714527'
+          cat > '/tmp/meva-agent-src/meva/config.py' <<'MEVA_EOF_197798'
           """Configuração do agente a partir das variáveis de ambiente do workflow."""
           from __future__ import annotations
 
@@ -1207,9 +1289,9 @@ jobs:
                   for k in (*KEY_ENV.values(), *SEARCH_ENV.values(), 'GH_TOKEN'):
                       os.environ.pop(k, None)
               return cfg
-          MEVA_EOF_714527
+          MEVA_EOF_197798
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/context.py' <<'MEVA_EOF_584520'
+          cat > '/tmp/meva-agent-src/meva/context.py' <<'MEVA_EOF_733745'
           """Gerenciamento de contexto: limites por resultado, limpeza de resultados antigos e resumo automático.
 
           Substitui o `compact_messages` da V18, que só cortava texto por caracteres e perdia o histórico.
@@ -1358,9 +1440,9 @@ jobs:
                   first_blocks = [{'type': 'text', 'text': first['content']}] if isinstance(first['content'], str) else list(first['content'])
                   merged = {'role': 'user', 'content': first_blocks + [{'type': 'text', 'text': '[RESUMO DO TRABALHO ATÉ AQUI — contexto compactado]\n' + summary}]}
                   return [merged] + recent
-          MEVA_EOF_584520
+          MEVA_EOF_733745
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/evals.py' <<'MEVA_EOF_236752'
+          cat > '/tmp/meva-agent-src/meva/evals.py' <<'MEVA_EOF_826507'
           """Avaliação do agente: tarefas pequenas e verificáveis, com projetos de fixture e checagem objetiva do resultado.
 
           Uso no workflow: mode=eval (usa as chaves reais). Cada tarefa roda o pipeline completo (`run`) num projeto descartável.
@@ -1504,14 +1586,14 @@ jobs:
               log('MEVA_EVAL_END')
               atomic_json(cfg.root / 'meva-data' / 'eval' / 'last.json', {'passed': passed, 'ran': len(ran), 'results': results})
               return 0
-          MEVA_EOF_236752
+          MEVA_EOF_826507
 
       - name: Materializar agente embutido (meva/ 2/5)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/github_api.py' <<'MEVA_EOF_422426'
+          cat > '/tmp/meva-agent-src/meva/github_api.py' <<'MEVA_EOF_454659'
           """Cliente mínimo da API do GitHub (retry com backoff apenas para falhas transitórias de GET)."""
           from __future__ import annotations
 
@@ -1630,9 +1712,9 @@ jobs:
                                   raise RuntimeError('Release acima de 1,8 GiB.')
                               f.write(block)
                   return n
-          MEVA_EOF_422426
+          MEVA_EOF_454659
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/gitrepo.py' <<'MEVA_EOF_645929'
+          cat > '/tmp/meva-agent-src/meva/gitrepo.py' <<'MEVA_EOF_560238'
           """Repositório git interno do workspace: baseline, commit por etapa, diff e log reais.
 
           O `.git` fica dentro do projeto importado, mas nunca é exportado (DENY_DIRS) nem acessível
@@ -1796,9 +1878,9 @@ jobs:
                   if not self.enabled:
                       return 'git indisponível: ' + self.reason
                   return self._out('log', '--oneline', '--no-decorate', f'-n{max(1, min(200, n))}')
-          MEVA_EOF_645929
+          MEVA_EOF_560238
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/intents.py' <<'MEVA_EOF_623279'
+          cat > '/tmp/meva-agent-src/meva/intents.py' <<'MEVA_EOF_899683'
           """Detecção de intenção do usuário (compilar / testar).
 
           Corrige o bug da V18, em que o regex `\\b(build|make)\\b` casava com "make sure…" e forçava
@@ -1859,9 +1941,9 @@ jobs:
           def is_approval(text: str) -> bool:
               t = (text or '').strip()
               return len(t) <= 60 and bool(_APPROVE.match(t))
-          MEVA_EOF_623279
+          MEVA_EOF_899683
           mkdir -p '/tmp/meva-agent-src/meva/plugins'
-          cat > '/tmp/meva-agent-src/meva/plugins/__init__.py' <<'MEVA_EOF_402899'
+          cat > '/tmp/meva-agent-src/meva/plugins/__init__.py' <<'MEVA_EOF_13834'
           """Plugins opcionais de domínio. Só ativam quando o projeto/tarefa pertence ao domínio."""
           from __future__ import annotations
 
@@ -1890,9 +1972,9 @@ jobs:
           def active_plugins(names, user_text: str) -> list:
               names = set(names)
               return [p for p in REGISTRY if p.detect(names, user_text)]
-          MEVA_EOF_402899
+          MEVA_EOF_13834
           mkdir -p '/tmp/meva-agent-src/meva/plugins'
-          cat > '/tmp/meva-agent-src/meva/plugins/xwt.py' <<'MEVA_EOF_42706'
+          cat > '/tmp/meva-agent-src/meva/plugins/xwt.py' <<'MEVA_EOF_78061'
           """Plugin XWT/Xbox 360: auditoria estática de ELF PowerPC big-endian, rootfs CPIO e Buildroot.
 
           Antes rodava em TODO pacote, mesmo fora do domínio. Agora só ativa quando há artefatos Xenon no
@@ -2092,9 +2174,9 @@ jobs:
                       return []
                   return ['Validação XWT: não há evidência suficiente de `xenon.elf` ELF32 PowerPC big-endian e `rootfs.cpio.gz` íntegro com '
                           'estrutura/init reconhecido (ou o build não passou depois da última edição). O pacote não será declarado compilação XWT concluída.']
-          MEVA_EOF_42706
+          MEVA_EOF_78061
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/project_io.py' <<'MEVA_EOF_262789'
+          cat > '/tmp/meva-agent-src/meva/project_io.py' <<'MEVA_EOF_342078'
           """Importação do projeto: upload por blocos Git verificados, ZIP seguro e retomada via Release."""
           from __future__ import annotations
 
@@ -2393,9 +2475,9 @@ jobs:
                   if n != int(asset.get('size', -1)) or not zipfile.is_zipfile(archive):
                       raise RuntimeError('ZIP anterior incompleto/inválido.')
                   self.zip_safe_extract(archive, self.cfg.project, strip_output=True)
-          MEVA_EOF_262789
+          MEVA_EOF_342078
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/prompts.py' <<'MEVA_EOF_659077'
+          cat > '/tmp/meva-agent-src/meva/prompts.py' <<'MEVA_EOF_251283'
           """Prompts do agente principal, dos subagentes e do verificador independente."""
           from __future__ import annotations
 
@@ -2486,14 +2568,14 @@ jobs:
               '4) Como será validado (sintaxe, build, testes) e o que NÃO poderá ser verificado; 5) O que você NÃO vai fazer. '
               'Não edite nada e não finja que já fez. Termine com: "Responda aprovar para executar, ou descreva os ajustes."'
           )
-          MEVA_EOF_659077
+          MEVA_EOF_251283
 
       - name: Materializar agente embutido (meva/ 3/5)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/providers.py' <<'MEVA_EOF_360587'
+          cat > '/tmp/meva-agent-src/meva/providers.py' <<'MEVA_EOF_570925'
           """Provedores de IA com tool calling NATIVO, prompt caching e validação de modelos.
 
           Formato canônico de mensagens (igual ao da Anthropic): cada mensagem é
@@ -2949,9 +3031,9 @@ jobs:
                               raise RuntimeError('Falha no provedor ' + name + ': ' + msg)
                           log('Fallback AUTO por erro transitório em ' + name + '; nenhuma repetição do mesmo POST.')
                           self.idx += 1
-          MEVA_EOF_360587
+          MEVA_EOF_570925
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/repomap.py' <<'MEVA_EOF_52683'
+          cat > '/tmp/meva-agent-src/meva/repomap.py' <<'MEVA_EOF_737630'
           """Mapa do repositório: símbolos por arquivo (sem executar código), para orientar projetos grandes."""
           from __future__ import annotations
 
@@ -3029,9 +3111,9 @@ jobs:
                   if len(files) < max_files:
                       files.append({'path': n, 'symbols': syms[:max_symbols], 'more': max(0, len(syms) - max_symbols)})
               return {'files_with_symbols': total, 'shown': len(files), 'truncated': total > len(files), 'map': files}
-          MEVA_EOF_52683
+          MEVA_EOF_737630
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/report.py' <<'MEVA_EOF_135252'
+          cat > '/tmp/meva-agent-src/meva/report.py' <<'MEVA_EOF_364010'
           """Relatório, manifesto e pacote ZIP verificado (com backups originais para rollback)."""
           from __future__ import annotations
 
@@ -3186,9 +3268,9 @@ jobs:
                       h.update(b)
               return {'size': out.stat().st_size, 'changes': len(changes), 'files': len(files), 'sha256': h.hexdigest(),
                       'plugin_checks': sum(len(a.get('checks', [])) for a in audits.values()), 'archive_verified': True}
-          MEVA_EOF_135252
+          MEVA_EOF_364010
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/sandbox.py' <<'MEVA_EOF_332854'
+          cat > '/tmp/meva-agent-src/meva/sandbox.py' <<'MEVA_EOF_361837'
           """Shell real dentro de um sandbox bubblewrap.
 
           Contrato de segurança (falha fechada: se o sandbox não funcionar, NADA é executado):
@@ -3342,9 +3424,9 @@ jobs:
                   if network is False and self.cfg.sandbox_network is False:
                       result['network_note'] = 'rede desligada no sandbox'
                   return result
-          MEVA_EOF_332854
+          MEVA_EOF_361837
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/session.py' <<'MEVA_EOF_883437'
+          cat > '/tmp/meva-agent-src/meva/session.py' <<'MEVA_EOF_481819'
           """Estado compartilhado de uma execução do agente (auditoria, evidências, leituras, plano)."""
           from __future__ import annotations
 
@@ -3497,14 +3579,14 @@ jobs:
               if isinstance(v.get('output'), str):
                   out['output_tail'] = redact(v['output'][-1000:])
               return out
-          MEVA_EOF_883437
+          MEVA_EOF_481819
 
       - name: Materializar agente embutido (meva/ 4/5)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/tools.py' <<'MEVA_EOF_936376'
+          cat > '/tmp/meva-agent-src/meva/tools.py' <<'MEVA_EOF_190545'
           """Ferramentas do agente (schemas JSON nativos + implementações).
 
           Regras de projeto:
@@ -4422,9 +4504,9 @@ jobs:
                                   'findings': [{'severity': f.get('severity', 'minor'), 'file': f.get('file', ''), 'issue': str(f.get('issue', ''))[:800]}
                                                for f in findings if isinstance(f, dict)][:30]}
                   return {'ok': True, 'recorded': True}
-          MEVA_EOF_936376
+          MEVA_EOF_190545
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/util.py' <<'MEVA_EOF_610420'
+          cat > '/tmp/meva-agent-src/meva/util.py' <<'MEVA_EOF_949761'
           """Utilitários compartilhados: limites, redação de segredos, caminhos seguros, hashes."""
           from __future__ import annotations
 
@@ -4590,14 +4672,14 @@ jobs:
                   return {'ok': False, 'timeout': True, 'output': (a + '\n' + b + '\nTIMEOUT')[-limit:]}
               except Exception as e:  # noqa: BLE001
                   return {'ok': False, 'error': redact(e)}
-          MEVA_EOF_610420
+          MEVA_EOF_949761
 
       - name: Materializar agente embutido (meva/ 5/5)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/validate.py' <<'MEVA_EOF_487264'
+          cat > '/tmp/meva-agent-src/meva/validate.py' <<'MEVA_EOF_717658'
           """Validação sintática/estrutural, dependências, toolchain e detecção de build/test."""
           from __future__ import annotations
 
@@ -4822,9 +4904,574 @@ jobs:
               elif code == 5 and re.search(r'no tests ran|collected 0 items', out, re.I):
                   result.update({'ok': None, 'status': 'NOT_RUN', 'reason': 'pytest não coletou nenhum teste.'})
               return result
-          MEVA_EOF_487264
+          MEVA_EOF_717658
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/workspace.py' <<'MEVA_EOF_566805'
+          cat > '/tmp/meva-agent-src/meva/video.py' <<'MEVA_EOF_927915'
+          """Geração de vídeo pela NVIDIA Cosmos 3 Nano — mecanismo INDEPENDENTE do LLM (provedores de chat não são tocados).
+
+          Fonte dos limites: documentação oficial (build.nvidia.com/nvidia/cosmos3-nano: apireference e modelcard).
+            POST https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos3-nano   Authorization: Bearer $NVIDIA_API_KEY
+            corpo: model_mode*, prompt* (1..20000), negative_prompt, seed, num_inference_steps (1..100, padrão 50),
+                   guidance_scale (1..7, padrão 4), flow_shift (padrão 3), fps (1..60, padrão 24), resolution (enum), num_frames
+            vídeo: num_frames 25..397 (tier 256), 25..297 (tier 480), 25..197 (tier 720)
+            200: {b64_video (MP4/VP9 em base64) | b64_image | action}   422: {error:{message,type,code}} (inválido OU recusa de segurança)
+            image2video: campo `input_reference` (base64, data URI ou URL pública) — segundo o model card; NÃO verificado contra a API real.
+
+          Regra central: "sucesso" só existe depois que o MP4 foi recebido, decodificado do base64, gravado em disco, relido e
+          inspecionado (estrutura ISO-BMFF + trilha de vídeo + amostras + chunks dentro do arquivo + decodificação por ffmpeg quando
+          disponível). Qualquer falha em qualquer etapa termina em `failed`/`unknown`, nunca em `done`.
+          """
+          from __future__ import annotations
+
+          import base64
+          import binascii
+          import hashlib
+          import json
+          import math
+          import os
+          import random
+          import re
+          import shutil
+          import socket
+          import struct
+          import subprocess
+          import time
+          import urllib.error
+          import urllib.request
+          from dataclasses import dataclass, field
+          from pathlib import Path
+
+          from .util import atomic_json, log, now_iso, redact
+
+          ENDPOINT = 'https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos3-nano'
+          MODEL_ID = 'nvidia/cosmos3-nano'
+          MODES = ('text2video', 'image2video')
+          PROMPT_MAX = 20000
+          MAX_B64_CHARS = 150 * 1024 * 1024
+          MAX_MP4_BYTES = 100 * 1024 * 1024  # limite do GitHub por arquivo; acima disso o resultado não poderia ser persistido
+
+          _TIERS = ('256', '480', '720')
+          _ASPECTS = ('', '_16_9', '_1_1', '_9_16', '_4_3', '_3_4')
+          RESOLUTIONS = tuple(t + a for t in _TIERS for a in _ASPECTS)
+          FRAME_LIMITS = {'256': (25, 397), '480': (25, 297), '720': (25, 197)}
+          # Únicos tamanhos em pixels que a documentação informa; os demais não são checados (só reportados).
+          KNOWN_DIMS = {'480_16_9': (832, 480), '480_1_1': (640, 640), '720_16_9': (1280, 720)}
+          ALLOWED_KEYS = {'model', 'model_mode', 'prompt', 'negative_prompt', 'seed', 'num_inference_steps', 'guidance_scale',
+                          'flow_shift', 'fps', 'resolution', 'num_frames', 'image'}
+          DEFAULTS = {'model_mode': 'text2video', 'resolution': '480_16_9', 'fps': 24, 'num_frames': 49, 'num_inference_steps': 50,
+                      'guidance_scale': 4, 'flow_shift': 3}
+
+
+          class VideoParamError(ValueError):
+              def __init__(self, errors):
+                  self.errors = list(errors)
+                  super().__init__('; '.join(self.errors))
+
+
+          def _num(v):
+              return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+          def _int(v):
+              return (isinstance(v, int) and not isinstance(v, bool)) or (isinstance(v, float) and math.isfinite(v) and v == int(v))
+
+
+          # ---------------------------------------------------------------------------------- validação dos parâmetros
+          def validate_params(raw: dict, allow_i2v: bool = False) -> dict:
+              """Valida contra os limites documentados; devolve parâmetros normalizados. Levanta VideoParamError com TODOS os problemas."""
+              errs: list[str] = []
+              if not isinstance(raw, dict):
+                  raise VideoParamError(['Os parâmetros precisam ser um objeto JSON.'])
+              unknown = sorted(set(raw) - ALLOWED_KEYS)
+              if unknown:
+                  errs.append('Campos desconhecidos: ' + ', '.join(unknown))
+              p = {**DEFAULTS, **{k: v for k, v in raw.items() if v is not None and v != ''}}
+              if p.get('model', MODEL_ID) != MODEL_ID:
+                  errs.append(f'Modelo não suportado: {p.get("model")!r} (use {MODEL_ID}).')
+              mode = p.get('model_mode')
+              if mode not in MODES:
+                  errs.append(f'model_mode inválido: {mode!r} (aceitos aqui: {", ".join(MODES)}).')
+              elif mode == 'image2video' and not allow_i2v:
+                  errs.append('image2video está implementado mas DESATIVADO por padrão: o campo input_reference vem do model card e não foi '
+                              'verificado contra a API real. Ative com MEVA_VIDEO_I2V=true por sua conta e risco.')
+              prompt = p.get('prompt')
+              if not isinstance(prompt, str) or not prompt.strip():
+                  errs.append('prompt é obrigatório e não pode ser vazio ou só espaços.')
+              elif len(prompt) > PROMPT_MAX:
+                  errs.append(f'prompt excede {PROMPT_MAX} caracteres ({len(prompt)}).')
+              neg = raw.get('negative_prompt')
+              if neg not in (None, '') and (not isinstance(neg, str) or len(neg) > PROMPT_MAX):
+                  errs.append('negative_prompt deve ser texto de até %d caracteres.' % PROMPT_MAX)
+              res = p.get('resolution')
+              if res not in RESOLUTIONS:
+                  errs.append(f'resolution inválida: {res!r}. Valores: {", ".join(RESOLUTIONS)}.')
+              fps = p.get('fps')
+              if not _num(fps) or not 1 <= fps <= 60:
+                  errs.append(f'fps deve estar entre 1 e 60 (recebido {fps!r}).')
+              steps = p.get('num_inference_steps')
+              if not _int(steps) or not 1 <= steps <= 100:
+                  errs.append(f'num_inference_steps deve ser inteiro entre 1 e 100 (recebido {steps!r}).')
+              gs = p.get('guidance_scale')
+              if not _num(gs) or not 1 <= gs <= 7:
+                  errs.append(f'guidance_scale deve estar entre 1 e 7 (recebido {gs!r}).')
+              fs = p.get('flow_shift')
+              if not _num(fs) or not 0 < fs <= 100:
+                  errs.append(f'flow_shift deve ser um número positivo (recebido {fs!r}).')
+              nf = p.get('num_frames')
+              tier = str(res).split('_')[0] if isinstance(res, str) else ''
+              if not _int(nf):
+                  errs.append(f'num_frames deve ser inteiro (recebido {nf!r}).')
+              elif tier in FRAME_LIMITS:
+                  lo, hi = FRAME_LIMITS[tier]
+                  if not lo <= nf <= hi:
+                      errs.append(f'num_frames deve estar entre {lo} e {hi} para a resolução {tier} (recebido {nf}).')
+              seed = raw.get('seed')
+              if seed not in (None, ''):
+                  if not _int(seed) or not 0 <= seed <= 2 ** 31 - 1:
+                      errs.append('seed deve ser inteiro entre 0 e 2147483647.')
+              image = p.get('image')
+              if mode == 'image2video':
+                  if not isinstance(image, str) or not image.strip():
+                      errs.append('image2video exige `image` (URL https pública ou imagem em base64/data URI JPEG, PNG ou WebP).')
+                  else:
+                      errs += check_image_ref(image)
+              elif image:
+                  errs.append('`image` só é aceito em image2video.')
+              if errs:
+                  raise VideoParamError(errs)
+              out = {
+                  'model': MODEL_ID, 'model_mode': mode, 'prompt': prompt, 'resolution': res, 'fps': fps, 'num_frames': int(nf),
+                  'num_inference_steps': int(steps), 'guidance_scale': gs, 'flow_shift': fs,
+                  'seed': int(seed) if seed not in (None, '') else None,
+              }
+              if neg not in (None, ''):
+                  out['negative_prompt'] = neg
+              if mode == 'image2video':
+                  out['image'] = image.strip()
+              return out
+
+
+          def check_image_ref(ref: str) -> list[str]:
+              ref = ref.strip()
+              if ref.lower().startswith('https://'):
+                  return [] if re.match(r'^https://[^\s/]+(/\S*)?$', ref) else ['URL da imagem inválida.']
+              if ref.lower().startswith('http://'):
+                  return ['A URL da imagem precisa ser https.']
+              m = re.match(r'^data:image/(jpeg|png|webp);base64,(.+)$', ref, re.S | re.I)
+              b64 = m.group(2) if m else ref
+              try:
+                  raw = base64.b64decode(re.sub(r'\s+', '', b64), validate=True)
+              except (binascii.Error, ValueError):
+                  return ['image não é URL https nem base64 válido.']
+              if not (raw.startswith(b'\xff\xd8\xff') or raw.startswith(b'\x89PNG\r\n\x1a\n') or (raw[:4] == b'RIFF' and raw[8:12] == b'WEBP')):
+                  return ['image não é JPEG, PNG nem WebP (assinatura inválida).']
+              return []
+
+
+          def build_payload(params: dict, seed: int) -> dict:
+              """Corpo da requisição. A seed é sempre enviada (aleatória no cliente quando o usuário não escolhe) para o resultado ser reproduzível."""
+              body = {
+                  'model_mode': params['model_mode'], 'prompt': params['prompt'], 'seed': seed,
+                  'num_inference_steps': params['num_inference_steps'], 'guidance_scale': params['guidance_scale'],
+                  'flow_shift': params['flow_shift'], 'fps': params['fps'], 'resolution': params['resolution'],
+                  'num_frames': params['num_frames'],
+              }
+              if params.get('negative_prompt'):
+                  body['negative_prompt'] = params['negative_prompt']
+              if params['model_mode'] == 'image2video':
+                  body['input_reference'] = params['image']
+              return body
+
+
+          # ---------------------------------------------------------------------------------- MP4
+          def _boxes(data: bytes, start: int, end: int, errors: list, where: str):
+              i = start
+              while i < end:
+                  if end - i < 8:
+                      errors.append(f'{where}: bytes sobrando ({end - i}) sem cabeçalho de box.')
+                      return
+                  size, typ = struct.unpack('>I4s', data[i:i + 8])
+                  hdr = 8
+                  if size == 1:
+                      if end - i < 16:
+                          errors.append(f'{where}: cabeçalho de 64 bits truncado.')
+                          return
+                      size = struct.unpack('>Q', data[i + 8:i + 16])[0]
+                      hdr = 16
+                  elif size == 0:
+                      size = end - i
+                  if size < hdr or i + size > end:
+                      errors.append(f'{where}: box {typ!r} declara {size} bytes mas só restam {end - i} (arquivo truncado/corrompido).')
+                      return
+                  yield typ, i + hdr, i + size
+                  i += size
+
+
+          def _find(data, start, end, path, errors):
+              cur = [(start, end)]
+              for name in path:
+                  nxt = []
+                  for s, e in cur:
+                      for typ, ps, pe in _boxes(data, s, e, errors, 'box'):
+                          if typ == name:
+                              nxt.append((ps, pe))
+                  cur = nxt
+              return cur
+
+
+          def inspect_mp4(data: bytes) -> dict:
+              """Inspeção estrutural de ISO-BMFF em Python puro (sem executar nada). Nunca confia em extensão nem em cabeçalho isolado."""
+              errors: list[str] = []
+              warnings: list[str] = []
+              info = {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+              if len(data) < 64:
+                  return {**info, 'ok': False, 'errors': ['Arquivo pequeno demais para ser um MP4.'], 'warnings': []}
+              top = list(_boxes(data, 0, len(data), errors, 'topo'))
+              types = [t for t, _, _ in top]
+              if not top or types[0] != b'ftyp':
+                  errors.append('O arquivo não começa com a box ftyp (não é MP4).')
+              brands = []
+              for typ, s, e in top:
+                  if typ == b'ftyp' and e - s >= 8:
+                      brands = [data[s:s + 4].decode('latin1')]
+                      break
+              info['brands'] = brands
+              if b'moov' not in types:
+                  errors.append('Box moov ausente (sem índice de mídia; MP4 incompleto).')
+              if b'mdat' not in types and b'moof' not in types:
+                  errors.append('Box mdat ausente (sem dados de vídeo).')
+              mdat_total = sum(e - s for t, s, e in top if t == b'mdat')
+              if b'mdat' in types and mdat_total <= 0:
+                  errors.append('Box mdat vazia.')
+              video = None
+              for typ, ms, me in top:
+                  if typ != b'moov':
+                      continue
+                  for ts, te in _find(data, ms, me, [b'trak'], errors):
+                      handler = None
+                      for s, e in _find(data, ts, te, [b'mdia', b'hdlr'], errors):
+                          if e - s >= 12:
+                              handler = data[s + 8:s + 12]
+                      if handler != b'vide':
+                          continue
+                      tr = {'width': 0, 'height': 0, 'timescale': 0, 'duration': 0, 'samples': 0, 'codec': '', 'max_chunk_offset': 0}
+                      for s, e in _find(data, ts, te, [b'tkhd'], errors):
+                          # tkhd v0: width em s+76; v1 (tempos de 64 bits): s+88 (16.16 fixo)
+                          base = s + (88 if data[s] == 1 else 76)
+                          if base + 8 <= e:
+                              tr['width'], tr['height'] = struct.unpack('>II', data[base:base + 8])
+                              tr['width'] >>= 16
+                              tr['height'] >>= 16
+                      for s, e in _find(data, ts, te, [b'mdia', b'mdhd'], errors):
+                          ver = data[s]
+                          if ver == 1 and e - s >= 32:
+                              tr['timescale'], tr['duration'] = struct.unpack('>IQ', data[s + 20:s + 32])
+                          elif e - s >= 20:
+                              tr['timescale'], tr['duration'] = struct.unpack('>II', data[s + 12:s + 20])
+                      stbl = _find(data, ts, te, [b'mdia', b'minf', b'stbl'], errors)
+                      for ss, se in stbl:
+                          for s, e in _find(data, ss, se, [b'stsd'], errors):
+                              if e - s >= 16:
+                                  tr['codec'] = data[s + 12:s + 16].decode('latin1')
+                          for s, e in _find(data, ss, se, [b'stsz'], errors):
+                              if e - s >= 12:
+                                  tr['samples'] = struct.unpack('>I', data[s + 8:s + 12])[0]
+                          for s, e in _find(data, ss, se, [b'stco'], errors):
+                              if e - s >= 8:
+                                  n = struct.unpack('>I', data[s + 4:s + 8])[0]
+                                  if n and e - s >= 8 + 4 * n:
+                                      tr['max_chunk_offset'] = max(struct.unpack('>%dI' % n, data[s + 8:s + 8 + 4 * n]))
+                          for s, e in _find(data, ss, se, [b'co64'], errors):
+                              if e - s >= 8:
+                                  n = struct.unpack('>I', data[s + 4:s + 8])[0]
+                                  if n and e - s >= 8 + 8 * n:
+                                      tr['max_chunk_offset'] = max(struct.unpack('>%dQ' % n, data[s + 8:s + 8 + 8 * n]))
+                      video = tr
+                      break
+                  break
+              if video is None:
+                  errors.append('Nenhuma trilha de vídeo (hdlr "vide") no moov.')
+              else:
+                  if video['width'] <= 0 or video['height'] <= 0:
+                      errors.append('Trilha de vídeo sem dimensões.')
+                  if video['samples'] <= 0:
+                      errors.append('Trilha de vídeo sem amostras (0 frames).')
+                  if video['timescale'] <= 0 or video['duration'] <= 0:
+                      errors.append('Trilha de vídeo sem duração.')
+                  if video['max_chunk_offset'] and video['max_chunk_offset'] >= len(data):
+                      errors.append('A tabela de chunks aponta para além do fim do arquivo (dados de vídeo truncados).')
+                  dur = video['duration'] / video['timescale'] if video['timescale'] else 0
+                  info.update({'width': video['width'], 'height': video['height'], 'frames': video['samples'], 'codec': video['codec'],
+                               'duration_s': round(dur, 3), 'fps_effective': round(video['samples'] / dur, 2) if dur else 0})
+                  if video['codec'] and video['codec'] != 'vp09':
+                      warnings.append(f'Codec {video["codec"]!r}: a documentação diz VP9 (vp09).')
+              return {**info, 'ok': not errors, 'errors': errors[:10], 'warnings': warnings}
+
+
+          def decode_check(path: Path, timeout: int = 300) -> dict:
+              """Decodifica o arquivo inteiro com ffmpeg (-f null). Se não houver ffmpeg, diz NOT_RUN (não finge validar)."""
+              exe = shutil.which('ffmpeg')
+              if not exe:
+                  return {'status': 'NOT_RUN', 'detail': 'ffmpeg não disponível; a validação ficou só estrutural.'}
+              try:
+                  r = subprocess.run([exe, '-v', 'error', '-xerror', '-i', str(path), '-map', '0:v:0', '-f', 'null', '-'], capture_output=True,
+                                     timeout=timeout, stdin=subprocess.DEVNULL, env={'PATH': os.environ.get('PATH', ''), 'HOME': '/tmp'})
+              except subprocess.TimeoutExpired:
+                  return {'status': 'FAIL', 'detail': 'Decodificação excedeu o tempo limite.'}
+              err = (r.stderr or b'').decode('utf-8', 'replace').strip()
+              if r.returncode != 0 or err:
+                  return {'status': 'FAIL', 'detail': (err or f'ffmpeg saiu com código {r.returncode}')[:400]}
+              return {'status': 'PASS', 'detail': 'ffmpeg decodificou todos os frames sem erro.'}
+
+
+          def decode_b64_video(b64: str) -> bytes:
+              if not isinstance(b64, str) or not b64.strip():
+                  raise ValueError('b64_video ausente ou vazio na resposta.')
+              s = b64.strip()
+              if len(s) > MAX_B64_CHARS:
+                  raise ValueError('b64_video grande demais para ser tratado com segurança.')
+              m = re.match(r'^data:video/[\w.+-]+;base64,', s, re.I)
+              if m:
+                  s = s[m.end():]
+              try:
+                  raw = base64.b64decode(re.sub(r'\s+', '', s), validate=True)
+              except (binascii.Error, ValueError) as e:
+                  raise ValueError('b64_video não é base64 válido: ' + str(e)[:100])
+              if not raw:
+                  raise ValueError('b64_video decodificou para 0 bytes.')
+              if len(raw) > MAX_MP4_BYTES:
+                  raise ValueError(f'O vídeo tem {len(raw)} bytes, acima do limite de {MAX_MP4_BYTES} para persistir.')
+              return raw
+
+
+          # ---------------------------------------------------------------------------------- transporte HTTP
+          class TransportTimeout(Exception):
+              pass
+
+
+          def default_transport(url: str, headers: dict, body: bytes, timeout: int):
+              """Devolve (status, headers, bytes). Timeout/queda de rede levantam TransportTimeout (a chamada PODE ter sido processada)."""
+              req = urllib.request.Request(url, data=body, method='POST', headers=headers)
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      chunks, total = [], 0
+                      while True:
+                          c = r.read(1024 * 1024)
+                          if not c:
+                              break
+                          total += len(c)
+                          if total > MAX_B64_CHARS + 4096:
+                              raise ValueError('Resposta maior que o limite aceito.')
+                          chunks.append(c)
+                      return r.status, dict(r.headers), b''.join(chunks)
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers or {}), e.read(200000)
+              except (urllib.error.URLError, TimeoutError, ConnectionError, socket.timeout) as e:
+                  raise TransportTimeout(redact(e))
+
+
+          _SAFETY = re.compile(r'safety|guardrail|screen|blocked|policy|csam|nsfw|harm|unsafe|moderat', re.I)
+
+
+          def classify_error(status: int, body: bytes) -> dict:
+              msg, typ, code = '', '', None
+              try:
+                  j = json.loads(body.decode('utf-8', 'replace'))
+                  e = j.get('error') if isinstance(j, dict) else None
+                  if isinstance(e, dict):
+                      msg, typ, code = str(e.get('message', '')), str(e.get('type', '')), e.get('code')
+                  elif isinstance(j, dict):
+                      msg = str(j.get('detail') or j.get('message') or j.get('title') or '')
+              except (ValueError, AttributeError):
+                  msg = body.decode('utf-8', 'replace')[:300]
+              msg = redact(msg or f'HTTP {status}', 600)
+              if status == 422:
+                  kind = 'safety_refusal' if _SAFETY.search(msg + ' ' + typ) else 'invalid_request'
+              elif status in (401, 403):
+                  kind = 'auth'
+                  msg = 'NVIDIA_API_KEY recusada (HTTP %d). Verifique o secret e se a conta tem acesso ao Cosmos 3 Nano. %s' % (status, msg)
+              elif status == 404:
+                  kind = 'not_found'
+              elif status == 429:
+                  kind = 'rate_limited'
+              elif status >= 500:
+                  kind = 'server_error'
+              else:
+                  kind = 'http_error'
+              return {'kind': kind, 'http_status': status, 'message': msg, 'type': typ[:80], 'code': code}
+
+
+          # ---------------------------------------------------------------------------------- geração
+          @dataclass
+          class VideoResult:
+              id: str
+              status: str                    # done | failed | unknown
+              path: Path | None = None
+              record: dict = field(default_factory=dict)
+
+              @property
+              def ok(self) -> bool:
+                  return self.status == 'done'
+
+
+          def videos_dir(root: Path) -> Path:
+              return Path(root) / 'meva-data' / 'videos'
+
+
+          def generate_video(raw_params: dict, api_key: str, out_dir: Path, vid: str, *, allow_i2v: bool = False, timeout: int = 1200,
+                             transport=None, sleep=time.sleep, retries_429: int = 2) -> VideoResult:
+              """Pipeline completo. Grava `<vid>.json` a cada etapa e só grava `<vid>.mp4` se o arquivo passar em TODAS as validações."""
+              transport = transport or default_transport
+              out_dir = Path(out_dir)
+              out_dir.mkdir(parents=True, exist_ok=True)
+              jpath, mpath = out_dir / f'{vid}.json', out_dir / f'{vid}.mp4'
+              rec: dict = {'id': vid, 'model': MODEL_ID, 'endpoint': ENDPOINT, 'status': 'validating_params', 'created_at': now_iso(), 'events': []}
+
+              def stage(status: str, **kw):
+                  rec['status'] = status
+                  rec.update(kw)
+                  rec['events'].append({'at': now_iso(), 'status': status})
+                  rec['updated_at'] = now_iso()
+                  atomic_json(jpath, rec)
+
+              def fail(status: str, kind: str, message: str, **kw) -> VideoResult:
+                  rec['error'] = {'kind': kind, 'message': redact(message, 800), **kw}
+                  rec['success'] = False
+                  stage(status)
+                  log(f'VIDEO {status.upper()} [{kind}]: {redact(message, 300)}')
+                  return VideoResult(vid, status, None, rec)
+
+              stage('validating_params')
+              try:
+                  params = validate_params(raw_params, allow_i2v)
+              except VideoParamError as e:
+                  return fail('failed', 'invalid_params', 'Parâmetros inválidos: ' + str(e), details=e.errors)
+              if not api_key:
+                  return fail('failed', 'missing_key', 'NVIDIA_API_KEY não está configurada nos GitHub Secrets.')
+              seed = params['seed'] if params['seed'] is not None else random.SystemRandom().randrange(0, 2 ** 31)
+              body = build_payload(params, seed)
+              shown = {k: v for k, v in params.items() if k != 'image'}
+              if 'image' in params:
+                  shown['image'] = {'kind': 'url' if params['image'].lower().startswith('https://') else 'inline',
+                                    'sha256': hashlib.sha256(params['image'].encode()).hexdigest()[:16]}
+              rec['request'] = {**shown, 'seed': seed, 'seed_chosen_by': 'user' if params['seed'] is not None else 'client'}
+              data = json.dumps(body, ensure_ascii=False).encode('utf-8')
+              headers = {'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json', 'Accept': 'application/json',
+                         'User-Agent': 'MEVA-CODE-V19'}
+              stage('submitted', submitted_at=now_iso())
+              log(f'VIDEO submetido: {params["model_mode"]} {params["resolution"]} {params["num_frames"]}f @ {params["fps"]}fps seed={seed}')
+              t0 = time.time()
+              attempt = 0
+              while True:
+                  try:
+                      status, resp_headers, resp_body = transport(ENDPOINT, headers, data, timeout)
+                  except TransportTimeout as e:
+                      # NÃO repete: a geração pode ter sido processada (e cobrada) mesmo sem resposta.
+                      return fail('unknown', 'timeout_or_network', 'Sem resposta (%s). A geração pode ter sido processada pela NVIDIA; '
+                                  'não foi repetida automaticamente. Confira o consumo na conta antes de reenviar.' % e,
+                                  elapsed_s=round(time.time() - t0, 1))
+                  except ValueError as e:
+                      return fail('failed', 'response_too_large', str(e))
+                  if status == 429 and attempt < retries_429:  # rejeitada antes de processar: seguro repetir
+                      attempt += 1
+                      try:
+                          wait = float(resp_headers.get('Retry-After') or 0)
+                      except (TypeError, ValueError):
+                          wait = 0
+                      wait = min(max(wait, 5 * attempt), 90)
+                      log(f'VIDEO: HTTP 429; nova tentativa em {wait:.0f}s ({attempt}/{retries_429}).')
+                      stage('submitted', retry=attempt)
+                      sleep(wait)
+                      continue
+                  break
+              elapsed = round(time.time() - t0, 1)
+              rid = next((v for k, v in resp_headers.items() if k.lower() in ('nvcf-reqid', 'x-request-id')), None)
+              rec['http'] = {'status': status, 'elapsed_s': elapsed, 'request_id': rid, 'response_bytes': len(resp_body)}
+              if status != 200:
+                  err = classify_error(status, resp_body)
+                  return fail('failed', err['kind'], err['message'], http_status=status, type=err['type'], code=err['code'])
+              try:
+                  j = json.loads(resp_body.decode('utf-8'))
+              except ValueError:
+                  return fail('failed', 'bad_response', 'HTTP 200 mas o corpo não é JSON.')
+              if not isinstance(j, dict) or not j.get('b64_video'):
+                  extra = 'imagem' if isinstance(j, dict) and j.get('b64_image') else 'nenhum vídeo'
+                  return fail('failed', 'no_video', f'HTTP 200 sem b64_video (a resposta trouxe {extra}). Nenhum vídeo foi gerado.')
+              stage('received')
+              try:
+                  raw = decode_b64_video(j['b64_video'])
+              except ValueError as e:
+                  return fail('failed', 'bad_base64', str(e))
+              del j
+              tmp = out_dir / f'{vid}.partial'
+              tmp.write_bytes(raw)
+              stage('validating')
+              try:
+                  back = tmp.read_bytes()  # relê do disco: o que será entregue é exatamente o que foi validado
+                  if back != raw:
+                      raise OSError('o arquivo gravado difere dos bytes recebidos')
+              except OSError as e:
+                  tmp.unlink(missing_ok=True)
+                  return fail('failed', 'write_error', 'Falha ao gravar o MP4: ' + str(e))
+              insp = inspect_mp4(back)
+              if not insp['ok']:
+                  tmp.unlink(missing_ok=True)
+                  rec['validation'] = insp
+                  return fail('failed', 'invalid_mp4', 'O arquivo recebido NÃO é um MP4 válido: ' + '; '.join(insp['errors'][:4]),
+                              bytes=len(raw), sha256=insp['sha256'])
+              dec = decode_check(tmp)
+              insp['decode'] = dec
+              if dec['status'] == 'FAIL':
+                  tmp.unlink(missing_ok=True)
+                  rec['validation'] = insp
+                  return fail('failed', 'undecodable_mp4', 'O MP4 tem estrutura válida mas não decodifica: ' + dec['detail'],
+                              bytes=len(raw), sha256=insp['sha256'])
+              warns = list(insp.get('warnings', []))
+              exp = KNOWN_DIMS.get(params['resolution'])
+              if exp and (insp['width'], insp['height']) != exp:
+                  warns.append(f'Dimensões {insp["width"]}x{insp["height"]} diferem do documentado para {params["resolution"]} ({exp[0]}x{exp[1]}).')
+              if insp['frames'] != params['num_frames']:
+                  warns.append(f'O vídeo tem {insp["frames"]} frames; foram pedidos {params["num_frames"]}.')
+              want = params['num_frames'] / params['fps']
+              if insp['duration_s'] and abs(insp['duration_s'] - want) > 0.25 * want:
+                  warns.append(f'Duração {insp["duration_s"]}s difere do esperado (~{want:.1f}s).')
+              if dec['status'] == 'NOT_RUN':
+                  warns.append(dec['detail'])
+              insp['warnings'] = warns
+              tmp.replace(mpath)
+              rec['validation'] = insp
+              rec['file'] = mpath.name
+              rec.update({'bytes': insp['bytes'], 'sha256': insp['sha256'], 'success': True})
+              stage('done', completed_at=now_iso())
+              log(f'VIDEO OK: {mpath.name} {insp["width"]}x{insp["height"]} {insp["frames"]} frames {insp["duration_s"]}s {insp["bytes"]} bytes sha256={insp["sha256"][:12]}')
+              return VideoResult(vid, 'done', mpath, rec)
+
+
+          def run_video(cfg, transport=None) -> int:
+              """Modo `video` do workflow: a mensagem é um JSON com os parâmetros. Não toca em conversas nem nos provedores de chat."""
+              out_dir = videos_dir(cfg.root)
+              vid = cfg.cid if re.match(r'^[A-Za-z0-9_-]{8,80}$', cfg.cid or '') else 'vid-' + hashlib.sha256(now_iso().encode()).hexdigest()[:12]
+              try:
+                  raw = json.loads(cfg.user or '{}')
+              except ValueError:
+                  raw = None
+              if raw is None:
+                  res = generate_video({'__invalid__': 1}, '', out_dir, vid)
+                  res.record['error']['message'] = 'A mensagem do modo video precisa ser um JSON com os parâmetros.'
+                  atomic_json(out_dir / f'{vid}.json', res.record)
+              else:
+                  res = generate_video(raw, cfg.api_keys.get('NVIDIA_API_KEY', ''), out_dir, vid,
+                                       allow_i2v=os.environ.get('MEVA_VIDEO_I2V', 'false').lower() == 'true',
+                                       timeout=int(os.environ.get('MEVA_VIDEO_TIMEOUT', '1200') or 1200), transport=transport)
+              out = os.getenv('GITHUB_OUTPUT')
+              if out:
+                  with open(out, 'a', encoding='utf-8') as f:
+                      f.write(f'status={"completed" if res.ok else "failed"}\nvideo_id={vid}\n')
+              log(f'MEVA_VIDEO_STATUS={res.status} ID={vid}')
+              return 0 if res.ok else 1
+          MEVA_EOF_927915
+          mkdir -p '/tmp/meva-agent-src/meva'
+          cat > '/tmp/meva-agent-src/meva/workspace.py' <<'MEVA_EOF_948052'
           """Workspace do projeto: inventário, caminhos seguros, snapshot SHA-256, backups e rollback."""
           from __future__ import annotations
 
@@ -5075,7 +5722,7 @@ jobs:
                   'workspace_disk_total_bytes': disk.total, 'runner_os': os.getenv('RUNNER_OS', 'unknown'),
                   'runner_arch': os.getenv('RUNNER_ARCH', 'unknown'),
               }
-          MEVA_EOF_566805
+          MEVA_EOF_948052
 
       - name: Materializar testes embutidos (1/2)
         if: ${{ inputs.mode == 'self_test' }}
@@ -5083,11 +5730,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/__init__.py' <<'MEVA_EOF_8756'
+          cat > '/tmp/meva-agent-src/tests/__init__.py' <<'MEVA_EOF_987084'
 
-          MEVA_EOF_8756
+          MEVA_EOF_987084
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/helpers.py' <<'MEVA_EOF_566408'
+          cat > '/tmp/meva-agent-src/tests/helpers.py' <<'MEVA_EOF_132618'
           """Utilitários de teste: ambiente temporário, provedor roteirizado e sandbox LOCAL (apenas para testes)."""
           from __future__ import annotations
 
@@ -5190,9 +5837,9 @@ jobs:
 
               def p(self, rel):
                   return self.cfg.project / rel
-          MEVA_EOF_566408
+          MEVA_EOF_132618
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_agent.py' <<'MEVA_EOF_158322'
+          cat > '/tmp/meva-agent-src/tests/test_agent.py' <<'MEVA_EOF_818851'
           import json
           import unittest
 
@@ -5396,9 +6043,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_158322
+          MEVA_EOF_818851
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_basics.py' <<'MEVA_EOF_539028'
+          cat > '/tmp/meva-agent-src/tests/test_basics.py' <<'MEVA_EOF_571984'
           import unittest
 
           from meva.intents import compile_requested, tests_requested
@@ -5450,9 +6097,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_539028
+          MEVA_EOF_571984
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_io_plugins_sandbox.py' <<'MEVA_EOF_649501'
+          cat > '/tmp/meva-agent-src/tests/test_io_plugins_sandbox.py' <<'MEVA_EOF_375192'
           import gzip
           import io
           import os
@@ -5646,9 +6293,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_649501
+          MEVA_EOF_375192
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_main.py' <<'MEVA_EOF_382500'
+          cat > '/tmp/meva-agent-src/tests/test_main.py' <<'MEVA_EOF_595223'
           import json
           import tempfile
           import unittest
@@ -5781,9 +6428,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_382500
+          MEVA_EOF_595223
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_nvidia.py' <<'MEVA_EOF_871646'
+          cat > '/tmp/meva-agent-src/tests/test_nvidia.py' <<'MEVA_EOF_144632'
           import unittest
           from unittest import mock
 
@@ -5909,9 +6556,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_871646
+          MEVA_EOF_144632
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_providers_context.py' <<'MEVA_EOF_445291'
+          cat > '/tmp/meva-agent-src/tests/test_providers_context.py' <<'MEVA_EOF_924103'
           import json
           import unittest
           import urllib.error
@@ -6174,9 +6821,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_445291
+          MEVA_EOF_924103
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_repomap.py' <<'MEVA_EOF_251756'
+          cat > '/tmp/meva-agent-src/tests/test_repomap.py' <<'MEVA_EOF_112732'
           import tempfile
           import unittest
           from pathlib import Path
@@ -6200,9 +6847,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_251756
+          MEVA_EOF_112732
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_review_regressions.py' <<'MEVA_EOF_868122'
+          cat > '/tmp/meva-agent-src/tests/test_review_regressions.py' <<'MEVA_EOF_696165'
           """Regressões dos achados da revisão independente."""
           import tempfile
           import unittest
@@ -6254,7 +6901,7 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_868122
+          MEVA_EOF_696165
 
       - name: Materializar testes embutidos (2/2)
         if: ${{ inputs.mode == 'self_test' }}
@@ -6262,7 +6909,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_tools.py' <<'MEVA_EOF_763823'
+          cat > '/tmp/meva-agent-src/tests/test_tools.py' <<'MEVA_EOF_691206'
           import base64
           import json
           import unittest
@@ -6487,9 +7134,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_763823
+          MEVA_EOF_691206
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_v19.py' <<'MEVA_EOF_122183'
+          cat > '/tmp/meva-agent-src/tests/test_v19.py' <<'MEVA_EOF_21603'
           import json
           import tempfile
           import unittest
@@ -6668,7 +7315,302 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_122183
+          MEVA_EOF_21603
+          mkdir -p '/tmp/meva-agent-src/tests'
+          cat > '/tmp/meva-agent-src/tests/test_video.py' <<'MEVA_EOF_428990'
+          import base64
+          import json
+          import shutil
+          import subprocess
+          import tempfile
+          import unittest
+          from pathlib import Path
+
+          from meva import video
+          from meva.config import Config
+          from meva.video import (TransportTimeout, VideoParamError, build_payload, classify_error, decode_b64_video, generate_video, inspect_mp4,
+                                  run_video, validate_params)
+
+          HAVE_FFMPEG = bool(shutil.which('ffmpeg'))
+          _CACHE = {}
+
+
+          def real_mp4(frames=25, size='832x480', fps=24) -> bytes:
+              key = (frames, size, fps)
+              if key not in _CACHE:
+                  with tempfile.TemporaryDirectory() as d:
+                      out = Path(d) / 't.mp4'
+                      subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', f'testsrc=size={size}:rate={fps}', '-frames:v', str(frames),
+                                      '-c:v', 'libvpx-vp9', '-b:v', '200k', '-pix_fmt', 'yuv420p', str(out)], check=True)
+                      _CACHE[key] = out.read_bytes()
+              return _CACHE[key]
+
+
+          def ok_body(mp4: bytes) -> bytes:
+              return json.dumps({'b64_video': base64.b64encode(mp4).decode(), 'b64_image': None, 'action': None}).encode()
+
+
+          class FakeTransport:
+              def __init__(self, *responses):
+                  self.responses, self.calls = list(responses), []
+
+              def __call__(self, url, headers, body, timeout):
+                  self.calls.append((url, headers, json.loads(body.decode()), timeout))
+                  r = self.responses.pop(0)
+                  if isinstance(r, Exception):
+                      raise r
+                  return r
+
+
+          BASE = {'prompt': 'um drone sobrevoando uma cidade ao amanhecer', 'resolution': '480_16_9', 'num_frames': 25, 'fps': 24}
+
+
+          class Params(unittest.TestCase):
+              def bad(self, **kw):
+                  with self.assertRaises(VideoParamError) as cm:
+                      validate_params({**BASE, **kw})
+                  return ' | '.join(cm.exception.errors)
+
+              def test_defaults_and_normalization(self):
+                  p = validate_params({'prompt': 'x'})
+                  self.assertEqual((p['model_mode'], p['resolution'], p['fps'], p['num_inference_steps'], p['guidance_scale'], p['flow_shift']),
+                                   ('text2video', '480_16_9', 24, 50, 4, 3))
+                  self.assertIsNone(p['seed'])
+
+              def test_documented_limits(self):
+                  self.assertIn('prompt é obrigatório', self.bad(prompt='   '))
+                  self.assertIn('excede 20000', self.bad(prompt='a' * 20001))
+                  validate_params({**BASE, 'prompt': 'a' * 20000})
+                  self.assertIn('fps', self.bad(fps=61))
+                  self.assertIn('fps', self.bad(fps=0.5))
+                  self.assertIn('num_inference_steps', self.bad(num_inference_steps=101))
+                  self.assertIn('num_inference_steps', self.bad(num_inference_steps=0))
+                  self.assertIn('guidance_scale', self.bad(guidance_scale=7.5))
+                  self.assertIn('guidance_scale', self.bad(guidance_scale=0.9))
+                  self.assertIn('resolution inválida', self.bad(resolution='1080_16_9'))
+                  self.assertIn('seed', self.bad(seed=-1))
+                  self.assertIn('seed', self.bad(seed=2 ** 31))
+                  self.assertIn('fps', self.bad(fps=True))
+                  self.assertIn('Campos desconhecidos', self.bad(banana=1))
+                  self.assertIn('Modelo não suportado', self.bad(model='nvidia/outro'))
+
+              def test_frame_limits_depend_on_resolution_tier(self):
+                  self.assertIn('25 e 397', self.bad(resolution='256', num_frames=398))
+                  validate_params({**BASE, 'resolution': '256_1_1', 'num_frames': 397})
+                  self.assertIn('25 e 297', self.bad(resolution='480_9_16', num_frames=298))
+                  self.assertIn('25 e 197', self.bad(resolution='720_16_9', num_frames=198))
+                  self.assertIn('25 e 197', self.bad(resolution='720', num_frames=24))
+                  validate_params({**BASE, 'resolution': '720_4_3', 'num_frames': 197})
+
+              def test_all_errors_reported_together(self):
+                  msg = self.bad(fps=99, num_inference_steps=500, guidance_scale=50)
+                  self.assertTrue(all(w in msg for w in ('fps', 'num_inference_steps', 'guidance_scale')))
+
+              def test_image2video_gated_and_validated(self):
+                  with self.assertRaises(VideoParamError) as cm:
+                      validate_params({**BASE, 'model_mode': 'image2video', 'image': 'https://x.test/a.png'})
+                  self.assertIn('DESATIVADO', str(cm.exception))
+                  p = validate_params({**BASE, 'model_mode': 'image2video', 'image': 'https://x.test/a.png'}, allow_i2v=True)
+                  self.assertEqual(build_payload(p, 7)['input_reference'], 'https://x.test/a.png')
+                  with self.assertRaises(VideoParamError):
+                      validate_params({**BASE, 'model_mode': 'image2video', 'image': 'http://x.test/a.png'}, allow_i2v=True)
+                  with self.assertRaises(VideoParamError):
+                      validate_params({**BASE, 'model_mode': 'image2video', 'image': base64.b64encode(b'not an image').decode()}, allow_i2v=True)
+                  png = base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'0' * 20).decode()
+                  validate_params({**BASE, 'model_mode': 'image2video', 'image': 'data:image/png;base64,' + png}, allow_i2v=True)
+                  with self.assertRaises(VideoParamError):
+                      validate_params({**BASE, 'image': 'https://x.test/a.png'})  # image em text2video
+
+              def test_payload_shape(self):
+                  b = build_payload(validate_params({**BASE, 'negative_prompt': 'borrado'}), 123)
+                  self.assertEqual(b['model_mode'], 'text2video')
+                  self.assertEqual((b['seed'], b['resolution'], b['num_frames'], b['negative_prompt']), (123, '480_16_9', 25, 'borrado'))
+                  self.assertNotIn('input_reference', b)
+                  self.assertNotIn('model', b)
+
+
+          @unittest.skipUnless(HAVE_FFMPEG, 'ffmpeg ausente')
+          class Mp4Inspection(unittest.TestCase):
+              def test_real_vp9_mp4_passes(self):
+                  mp4 = real_mp4()
+                  r = inspect_mp4(mp4)
+                  self.assertTrue(r['ok'], r)
+                  self.assertEqual((r['width'], r['height'], r['frames'], r['codec']), (832, 480, 25, 'vp09'))
+                  self.assertAlmostEqual(r['duration_s'], 25 / 24, delta=0.1)
+
+              def test_truncated_and_garbage_fail(self):
+                  mp4 = real_mp4()
+                  for cut in (len(mp4) // 2, len(mp4) - 10, 100):
+                      self.assertFalse(inspect_mp4(mp4[:cut])['ok'], cut)
+                  self.assertFalse(inspect_mp4(b'\x00' * 500)['ok'])
+                  self.assertFalse(inspect_mp4(b'not an mp4 at all' * 20)['ok'])
+                  self.assertFalse(inspect_mp4(b'')['ok'])
+
+              def test_missing_moov_or_wrong_header_fail(self):
+                  mp4 = real_mp4()
+                  no_ftyp = b'\x00\x00\x00\x08free' + mp4[28:]
+                  self.assertFalse(inspect_mp4(no_ftyp)['ok'])
+
+              def test_decode_check_detects_corrupted_payload(self):
+                  mp4 = bytearray(real_mp4())
+                  mdat = bytes(mp4).find(b'mdat') + 4
+                  for i in range(mdat + 200, mdat + 1200):  # corrompe frames sem mexer na estrutura
+                      mp4[i] ^= 0xFF
+                  with tempfile.TemporaryDirectory() as d:
+                      p = Path(d) / 'x.mp4'
+                      p.write_bytes(bytes(mp4))
+                      self.assertEqual(video.decode_check(p)['status'], 'FAIL')
+                      p.write_bytes(real_mp4())
+                      self.assertEqual(video.decode_check(p)['status'], 'PASS')
+
+              def test_b64_decoding_is_strict(self):
+                  mp4 = real_mp4()
+                  self.assertEqual(decode_b64_video(base64.b64encode(mp4).decode()), mp4)
+                  self.assertEqual(decode_b64_video('data:video/mp4;base64,' + base64.b64encode(mp4).decode()), mp4)
+                  for bad in ('', '   ', None, 'não é base64!!', 'QUJD' + '@@'):
+                      with self.assertRaises(ValueError):
+                          decode_b64_video(bad)
+
+
+          @unittest.skipUnless(HAVE_FFMPEG, 'ffmpeg ausente')
+          class Generate(unittest.TestCase):
+              def setUp(self):
+                  self._tmp = tempfile.TemporaryDirectory()
+                  self.addCleanup(self._tmp.cleanup)
+                  self.out = Path(self._tmp.name) / 'videos'
+
+              def gen(self, transport, params=None, key='nvapi-SECRETKEY-1234567890abcdef', **kw):
+                  return generate_video(params or BASE, key, self.out, 'vid-teste-0001', transport=transport, sleep=lambda s: None, **kw)
+
+              def rec(self):
+                  return json.loads((self.out / 'vid-teste-0001.json').read_text(encoding='utf-8'))
+
+              def test_success_requires_real_validated_mp4(self):
+                  mp4 = real_mp4()
+                  t = FakeTransport((200, {'NVCF-REQID': 'abc-123'}, ok_body(mp4)))
+                  res = self.gen(t, {**BASE, 'seed': 42})
+                  self.assertTrue(res.ok)
+                  self.assertEqual((self.out / 'vid-teste-0001.mp4').read_bytes(), mp4)
+                  r = self.rec()
+                  self.assertEqual((r['status'], r['success'], r['sha256']), ('done', True, __import__('hashlib').sha256(mp4).hexdigest()))
+                  self.assertEqual(r['validation']['decode']['status'], 'PASS')
+                  self.assertEqual(r['http']['request_id'], 'abc-123')
+                  self.assertEqual([e['status'] for e in r['events']][:5], ['validating_params', 'submitted', 'received', 'validating', 'done'])
+                  url, headers, body, _ = t.calls[0]
+                  self.assertEqual(url, 'https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos3-nano')
+                  self.assertEqual(headers['Authorization'], 'Bearer nvapi-SECRETKEY-1234567890abcdef')
+                  self.assertEqual((body['model_mode'], body['seed'], body['num_frames']), ('text2video', 42, 25))
+                  self.assertNotIn('SECRETKEY', json.dumps(r))
+                  self.assertEqual(list(self.out.glob('*.partial')), [])
+
+              def test_seed_is_chosen_and_recorded_when_absent(self):
+                  t = FakeTransport((200, {}, ok_body(real_mp4())))
+                  self.gen(t)
+                  seed = t.calls[0][2]['seed']
+                  self.assertIsInstance(seed, int)
+                  self.assertEqual((self.rec()['request']['seed'], self.rec()['request']['seed_chosen_by']), (seed, 'client'))
+
+              def test_http_200_without_video_is_never_success(self):
+                  for body in ({'b64_video': None, 'b64_image': None}, {'b64_image': 'abc'}, {}, {'b64_video': ''}):
+                      res = self.gen(FakeTransport((200, {}, json.dumps(body).encode())))
+                      self.assertEqual(res.status, 'failed', body)
+                      self.assertEqual(self.rec()['error']['kind'], 'no_video')
+                      self.assertFalse((self.out / 'vid-teste-0001.mp4').exists())
+                  self.assertEqual(self.gen(FakeTransport((200, {}, b'<html>oops</html>'))).status, 'failed')
+
+              def test_invalid_base64_and_invalid_mp4_are_rejected_and_not_kept(self):
+                  res = self.gen(FakeTransport((200, {}, json.dumps({'b64_video': '###'}).encode())))
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'bad_base64'))
+                  fake = base64.b64encode(b'isto nao e um mp4' * 100).decode()
+                  res = self.gen(FakeTransport((200, {}, json.dumps({'b64_video': fake}).encode())))
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'invalid_mp4'))
+                  mp4 = real_mp4()
+                  res = self.gen(FakeTransport((200, {}, ok_body(mp4[:len(mp4) // 2]))))
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'invalid_mp4'))
+                  self.assertFalse(self.rec()['success'])
+                  self.assertEqual(sorted(p.name for p in self.out.iterdir()), ['vid-teste-0001.json'])  # nada de MP4 inválido no disco
+
+              def test_structurally_valid_but_corrupt_video_fails_decode(self):
+                  mp4 = bytearray(real_mp4())
+                  mdat = bytes(mp4).find(b'mdat') + 4
+                  for i in range(mdat + 200, mdat + 1200):
+                      mp4[i] ^= 0xFF
+                  res = self.gen(FakeTransport((200, {}, ok_body(bytes(mp4)))))
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'undecodable_mp4'))
+                  self.assertFalse((self.out / 'vid-teste-0001.mp4').exists())
+
+              def test_error_statuses_are_classified(self):
+                  cases = [
+                      (422, {'error': {'message': 'Request blocked by content safety guardrails', 'type': 'safety', 'code': 422}}, 'safety_refusal'),
+                      (422, {'error': {'message': 'prompt must not be empty', 'type': 'invalid_request', 'code': 422}}, 'invalid_request'),
+                      (401, {'detail': 'Unauthorized'}, 'auth'),
+                      (403, {'detail': 'Forbidden'}, 'auth'),
+                      (404, {'detail': 'nope'}, 'not_found'),
+                      (500, {'detail': 'boom'}, 'server_error'),
+                  ]
+                  for status, body, kind in cases:
+                      t = FakeTransport((status, {}, json.dumps(body).encode()))
+                      res = self.gen(t)
+                      self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', kind), status)
+                      self.assertEqual(len(t.calls), 1)  # nenhum retry fora do 429
+                      self.assertFalse((self.out / 'vid-teste-0001.mp4').exists())
+
+              def test_429_is_retried_then_succeeds_and_gives_up(self):
+                  t = FakeTransport((429, {'Retry-After': '1'}, b'{}'), (200, {}, ok_body(real_mp4())))
+                  self.assertTrue(self.gen(t).ok)
+                  self.assertEqual(len(t.calls), 2)
+                  t = FakeTransport(*[(429, {}, b'{}')] * 3)
+                  res = self.gen(t)
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'rate_limited'))
+                  self.assertEqual(len(t.calls), 3)
+
+              def test_timeout_is_unknown_and_never_retried(self):
+                  t = FakeTransport(TransportTimeout('timed out'))
+                  res = self.gen(t)
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('unknown', 'timeout_or_network'))
+                  self.assertEqual(len(t.calls), 1)
+                  self.assertIn('pode ter sido processada', self.rec()['error']['message'])
+
+              def test_invalid_params_never_call_the_api(self):
+                  t = FakeTransport()
+                  res = self.gen(t, {**BASE, 'fps': 99})
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'invalid_params'))
+                  self.assertEqual(t.calls, [])
+
+              def test_missing_key_never_calls_the_api(self):
+                  t = FakeTransport()
+                  res = self.gen(t, key='')
+                  self.assertEqual((res.status, self.rec()['error']['kind']), ('failed', 'missing_key'))
+                  self.assertEqual(t.calls, [])
+
+              def test_mismatch_with_request_is_a_warning_not_success_inflation(self):
+                  res = self.gen(FakeTransport((200, {}, ok_body(real_mp4(frames=30)))))  # pediu 25, veio 30
+                  self.assertTrue(res.ok)
+                  self.assertTrue(any('30 frames' in w for w in self.rec()['validation']['warnings']))
+
+              def test_run_video_mode_does_not_touch_conversations(self):
+                  root = Path(self._tmp.name) / 'root'
+                  cfg = Config(root=root, cid='vid-run-12345', mode='video', user=json.dumps(BASE), api_keys={'NVIDIA_API_KEY': 'k' * 20})
+                  code = run_video(cfg, transport=FakeTransport((200, {}, ok_body(real_mp4()))))
+                  self.assertEqual(code, 0)
+                  self.assertTrue((root / 'meva-data' / 'videos' / 'vid-run-12345.mp4').is_file())
+                  self.assertFalse((root / 'meva-data' / 'conversations').exists())
+                  self.assertFalse((root / 'meva-workspace').exists())
+                  cfg = Config(root=root, cid='vid-run-99999', mode='video', user=json.dumps(BASE), api_keys={'NVIDIA_API_KEY': 'k' * 20})
+                  self.assertEqual(run_video(cfg, transport=FakeTransport((422, {}, b'{"error":{"message":"safety"}}'))), 1)
+                  cfg = Config(root=root, cid='vid-run-77777', mode='video', user='isto não é json', api_keys={'NVIDIA_API_KEY': 'k'})
+                  self.assertEqual(run_video(cfg), 1)
+
+
+          class Errors(unittest.TestCase):
+              def test_classify_error_redacts_secrets(self):
+                  e = classify_error(422, json.dumps({'error': {'message': 'bad Authorization: Bearer abcdefghijklmnop1234'}}).encode())
+                  self.assertNotIn('abcdefghijklmnop1234', e['message'])
+
+
+          if __name__ == '__main__':
+              unittest.main()
+          MEVA_EOF_428990
 
       - name: Verificar agente embutido
         shell: bash
@@ -6678,6 +7620,7 @@ jobs:
           python3 -m compileall -q /tmp/meva-agent-src/meva
 
       - name: Preparar sandbox, busca e validadores
+        if: ${{ inputs.mode != 'video' }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -6695,7 +7638,7 @@ jobs:
           fi
 
       - name: Instalar ferramentas de build autorizadas
-        if: ${{ inputs.allow_build == true }}
+        if: ${{ inputs.allow_build == true && inputs.mode != 'video' }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -6711,6 +7654,19 @@ jobs:
             g++-powerpc64-linux-gnu libelf-dev libssl-dev libncurses-dev libzstd-dev \
             cpio rsync unzip zip xz-utils zstd gzip bzip2 lz4 lzop file wget curl git \
             device-tree-compiler ccache gettext autoconf automake libtool nodejs npm python3-dev python3-yaml shellcheck
+
+      - name: Instalar ffmpeg (decodificação real do vídeo gerado)
+        if: ${{ inputs.mode == 'video' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if command -v ffmpeg >/dev/null; then ffmpeg -version | head -1; exit 0; fi
+          for attempt in 1 2 3; do
+            if sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg; then break; fi
+            [[ "$attempt" -lt 3 ]] || { echo 'ffmpeg indisponível: o vídeo será validado só estruturalmente (isso aparece como aviso no registro).'; exit 0; }
+            sleep $((attempt*5))
+          done
 
       - name: Validar parâmetros do workflow
         env:
@@ -6728,7 +7684,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           [[ "$TOKEN_BUDGET" =~ ^[0-9]{1,12}$ ]] || { echo 'token_budget inválido (somente dígitos).'; exit 1; }
-          [[ "$MODE" =~ ^(chat|agent|linux_zip|self_test|resume|eval)$ ]] || { echo 'Modo inválido para o job de IA.'; exit 1; }
+          [[ "$MODE" =~ ^(chat|agent|linux_zip|self_test|resume|eval|video)$ ]] || { echo 'Modo inválido para o job de IA.'; exit 1; }
           [[ "$MODE" == self_test || "$MODE" == resume || "$MODE" == eval || -n "${MESSAGE//[[:space:]]/}" ]] || { echo 'Mensagem vazia.'; exit 1; }
           (( ${#MESSAGE} <= 12000 )) || { echo 'Mensagem acima de 12000 caracteres.'; exit 1; }
           [[ -z "$CID" || "$CID" =~ ^[A-Za-z0-9_-]{8,80}$ ]] || { echo 'ID de conversa inválido.'; exit 1; }
@@ -6858,6 +7814,7 @@ jobs:
             meva-workspace/MEVA-TODOS.json
             meva-workspace/MEVA-GIT-LOG.txt
             meva-data/checkpoints/${{ inputs.conversation_id || format('run-{0}', github.run_id) }}.json
+            meva-data/videos/${{ inputs.conversation_id || format('run-{0}', github.run_id) }}.*
           if-no-files-found: warn
           retention-days: 14
 
@@ -6950,6 +7907,7 @@ jobs:
             echo '- Pages usa deploy-pages v5.0.1, Node 24, backoff/jitter, até três tentativas e verificação HTTP.'
             echo '- Estado parcial, erro ou teste não executado não é apresentado como build concluído.'
             echo '- NVIDIA: Nemotron 3 Ultra como principal e 3.5 Lightning nos subagentes; limite de requisições/min no cliente; temperature 1.0/top_p 0.95.'
+            echo '- Vídeo (modo video): NVIDIA Cosmos 3 Nano, independente do LLM; só marca sucesso com MP4 real validado (estrutura + decodificação ffmpeg).'
             echo '- V19: plano com aprovação, orçamento de tokens, cache de build, retomada no meio da tarefa e modo eval.'
             echo '- Agente V19: tool calling nativo, shell em sandbox bubblewrap (sem rede/segredos), git por etapa, loop de correção forçado e verificador independente.'
           } >> "$GITHUB_STEP_SUMMARY"
