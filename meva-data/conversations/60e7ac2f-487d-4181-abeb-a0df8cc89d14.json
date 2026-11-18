@@ -10,14 +10,23 @@
       "role": "assistant",
       "content": "Olá! O projeto parece estar vazio (nenhum arquivo, git não inicializado). O que você gostaria de fazer? Posso ajudar a criar algo novo, importar código, configurar um projeto, etc.\n\nAuditoria: 1 ações; 0 falhas registradas.",
       "created_at": "2026-11-18T18:27:24Z"
+    },
+    {
+      "role": "user",
+      "content": "Crie um vídeo de um bebê batendo palma durante 10 segundos."
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão."
     }
   ],
   "project_loaded": false,
-  "updated_at": "2026-11-18T18:27:24Z",
-  "provider": "nvidia",
-  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "updated_at": "2026-11-18T18:29:34Z",
+  "provider": "",
+  "model": "",
   "autonomy": "auto",
   "mode": "agent",
-  "status": "completed",
-  "todos": []
+  "status": "failed",
+  "todos": [],
+  "last_error": "RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão."
 }
