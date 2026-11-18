@@ -1,11 +1,11 @@
 {
   "conversation_id": "60e7ac2f-487d-4181-abeb-a0df8cc89d14",
   "actions": 0,
-  "updated_at": "2026-11-18T18:29:34Z",
+  "updated_at": "2026-11-18T18:41:17Z",
   "project_loaded": false,
   "completed": false,
   "status": "failed",
-  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão.",
+  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos-predict1-7b-text2world' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/ai-synthetic-video-detector, nvidia/nv-embedqa-mistral-7b-v2. Deixe model_id vazio para usar o padrão.",
   "provider": "",
   "model": "",
   "pending_upload": null

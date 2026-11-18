@@ -18,15 +18,23 @@
     {
       "role": "assistant",
       "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão."
+    },
+    {
+      "role": "user",
+      "content": "Crie um vídeo de um bebê batendo palma durante 10 segundos."
+    },
+    {
+      "role": "assistant",
+      "content": "EXECUÇÃO INTERROMPIDA: RuntimeError: Modelo 'nvidia/cosmos-predict1-7b-text2world' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/ai-synthetic-video-detector, nvidia/nv-embedqa-mistral-7b-v2. Deixe model_id vazio para usar o padrão."
     }
   ],
   "project_loaded": false,
-  "updated_at": "2026-11-18T18:29:34Z",
+  "updated_at": "2026-11-18T18:41:17Z",
   "provider": "",
   "model": "",
   "autonomy": "auto",
   "mode": "agent",
   "status": "failed",
   "todos": [],
-  "last_error": "RuntimeError: Modelo 'nvidia/cosmos3-nano' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/embed-qa-4, nvidia/nvclip. Deixe model_id vazio para usar o padrão."
+  "last_error": "RuntimeError: Modelo 'nvidia/cosmos-predict1-7b-text2world' não existe em nvidia para esta chave. Parecidos: nvidia/cosmos-reason2-8b, nvidia/ai-synthetic-video-detector, nvidia/nv-embedqa-mistral-7b-v2. Deixe model_id vazio para usar o padrão."
 }
