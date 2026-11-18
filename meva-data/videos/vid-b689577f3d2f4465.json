@@ -1,0 +1,50 @@
+{
+  "id": "vid-b689577f3d2f4465",
+  "model": "nvidia/cosmos3-nano",
+  "endpoint": "https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos3-nano",
+  "status": "failed",
+  "created_at": "2026-11-18T23:56:03Z",
+  "events": [
+    {
+      "at": "2026-11-18T23:56:03Z",
+      "status": "validating_params"
+    },
+    {
+      "at": "2026-11-18T23:56:03Z",
+      "status": "submitted"
+    },
+    {
+      "at": "2026-11-18T23:56:03Z",
+      "status": "failed"
+    }
+  ],
+  "updated_at": "2026-11-18T23:56:03Z",
+  "request": {
+    "model": "nvidia/cosmos3-nano",
+    "model_mode": "text2video",
+    "prompt": "Crie um bebê de cabelo laranja com estilo de desenho batendo as mãos.",
+    "resolution": "720_9_16",
+    "fps": 24,
+    "num_frames": 197,
+    "num_inference_steps": 50,
+    "guidance_scale": 4,
+    "flow_shift": 3,
+    "seed": 852287467,
+    "seed_chosen_by": "client"
+  },
+  "submitted_at": "2026-11-18T23:56:03Z",
+  "http": {
+    "status": 404,
+    "elapsed_s": 0.1,
+    "request_id": null,
+    "response_bytes": 19
+  },
+  "error": {
+    "kind": "not_found",
+    "message": "404 page not found\n",
+    "http_status": 404,
+    "type": "",
+    "code": null
+  },
+  "success": false
+}
