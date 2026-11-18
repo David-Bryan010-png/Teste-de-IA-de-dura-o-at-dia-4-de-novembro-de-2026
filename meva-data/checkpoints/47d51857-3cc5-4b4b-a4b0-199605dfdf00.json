@@ -1,0 +1,12 @@
+{
+  "conversation_id": "47d51857-3cc5-4b4b-a4b0-199605dfdf00",
+  "actions": 0,
+  "updated_at": "2026-11-18T21:21:26Z",
+  "project_loaded": false,
+  "completed": false,
+  "status": "failed",
+  "summary": "EXECUÇÃO INTERROMPIDA: RuntimeError: ID personalizado sem prefixo reconhecido; selecione o provedor manualmente.",
+  "provider": "",
+  "model": "",
+  "pending_upload": null
+}
