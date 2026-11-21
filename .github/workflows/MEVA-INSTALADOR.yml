@@ -1,5 +1,5 @@
 name: MEVA CODE V19 — Linux Project Engineering Agent
-run-name: MEVA V19 / ${{ inputs.mode || 'install' }} / ${{ inputs.conversation_id || github.run_id }}
+run-name: MEVA V19.1 / ${{ inputs.mode || 'install' }} / ${{ inputs.conversation_id || github.run_id }}
 
 on:
   workflow_dispatch:
