@@ -159,7 +159,7 @@ jobs:
           <h2>Vídeo · NVIDIA Cosmos 3 Nano</h2>
           <div class="muted">Mecanismo independente do chat e dos provedores de IA. A chave NVIDIA_API_KEY fica nos GitHub Secrets (nunca passa pelo navegador). Um vídeo só aparece como sucesso depois que o MP4 real é recebido, gravado e validado.</div>
           <form id="vidForm" autocomplete="off" novalidate>
-          <label>Modelo</label><select id="vidModel"><option value="nvidia/cosmos3-nano">NVIDIA Cosmos 3 Nano · nvidia/cosmos3-nano</option></select>
+          <label>Modelo</label><select id="vidModel"><option value="nvidia/cosmos3-nano">NVIDIA Cosmos 3 Nano · nvidia/cosmos3-nano</option><option value="nvidia/cosmos-predict1-7b">NVIDIA Cosmos Predict 1 7B · alternativa (clipe fixo ~5 s, 1280×704)</option></select>
           <label>Modo</label><select id="vidMode"><option value="text2video">Texto → vídeo (text2video)</option><option value="image2video" disabled>Imagem → vídeo (image2video) · em breve, ainda não verificado</option></select>
           <label>Prompt (obrigatório)</label><textarea id="vidPrompt" rows="4" maxlength="9500" placeholder="Descreva a cena, o movimento da câmera, a luz e o estilo…"></textarea><div id="vidPromptCount" class="muted"></div>
           <label>Prompt negativo (opcional)</label><textarea id="vidNeg" rows="2" maxlength="1500"></textarea>
@@ -263,7 +263,7 @@ jobs:
           const run=await vidWait(started,br,id);let rec=null;for(let i=0;i<12&&!rec;i++){try{rec=await vidLoadRecord(id,br)}catch(x){await sleep(5000)}}
           if(!rec)return vidSay('Sem registro do diagnóstico. Veja: '+run.url,'err');await vidShow(rec,br);vidSay(rec.documented_route_ok?'Rota documentada existe.':'Rota documentada NÃO respondeu como válida.',rec.documented_route_ok?'ok':'err')}
           catch(x){vidSay(x.message,'err')}finally{vidBusy=false;$('vidSend').disabled=false;$('vidDiag').disabled=false}});
-          $('vidForm').addEventListener('submit',async e=>{e.preventDefault();if(vidBusy||busy)return;const {errs,p}=vidParams();if(errs.length)return vidSay(errs.join(' '),'err');const br=$('branch').value.trim()||branch;if(!validBranch(br))return vidSay('Branch inválida.','err');
+          $('vidForm').addEventListener('submit',async e=>{e.preventDefault();if(vidBusy||busy)return;let {errs,p}=vidParams();if($('vidModel').value==='nvidia/cosmos-predict1-7b'){const pr=$('vidPrompt').value.trim();errs=pr?[]:['Informe o prompt.'];p={model:'nvidia/cosmos-predict1-7b',prompt:pr}}if(errs.length)return vidSay(errs.join(' '),'err');const br=$('branch').value.trim()||branch;if(!validBranch(br))return vidSay('Branch inválida.','err');
           vidBusy=true;$('vidSend').disabled=true;$('vidResult').replaceChildren();const id='vid-'+crypto.randomUUID().replace(/-/g,'').slice(0,16),started=Date.now();
           try{await resolveWorkflow();vidSay('Enviando a requisição ao GitHub Actions…');await api(`${repoPath}/actions/workflows/${workflowId}/dispatches`,{method:'POST',body:JSON.stringify({ref:br,inputs:{mode:'video',message:JSON.stringify(p),conversation_id:id,branch:br,autonomy:'safe',model_provider:'auto',model_id:'',allow_build:'false',max_actions:'30'}})});
           const run=await vidWait(started,br,id);let rec=null,lastErr=null;for(let i=0;i<12&&!rec;i++){try{rec=await vidLoadRecord(id,br)}catch(x){lastErr=x;await sleep(5000)}}
@@ -475,19 +475,19 @@ jobs:
           python-version: '3.12'
           cache: ''
 
-      - name: Materializar agente embutido (meva/ 1/5)
+      - name: Materializar agente embutido (meva/ 1/6)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/__init__.py' <<'MEVA_EOF_253838'
+          cat > '/tmp/meva-agent-src/meva/__init__.py' <<'MEVA_EOF_388230'
           """MEVA CODE V19 — agente de engenharia verificável (pacote testável)."""
           from .util import VERSION
 
           __all__ = ['VERSION']
-          MEVA_EOF_253838
+          MEVA_EOF_388230
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/__main__.py' <<'MEVA_EOF_949318'
+          cat > '/tmp/meva-agent-src/meva/__main__.py' <<'MEVA_EOF_882679'
           """Ponto de entrada: `python -m meva` (chamado pelo workflow)."""
           from __future__ import annotations
 
@@ -802,9 +802,9 @@ jobs:
 
           if __name__ == '__main__':
               sys.exit(main())
-          MEVA_EOF_949318
+          MEVA_EOF_882679
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/agent.py' <<'MEVA_EOF_588041'
+          cat > '/tmp/meva-agent-src/meva/agent.py' <<'MEVA_EOF_215896'
           """Loop do agente com tool calling nativo, execução paralela, portão de conclusão e subagentes.
 
           Loop de correção forçado pelo runtime (não depende do modelo "lembrar"):
@@ -1178,9 +1178,9 @@ jobs:
                   s.record_event('verifier', verdict['verdict'], 'success' if verdict['verdict'] != 'FAIL' else 'failed',
                                  result={'verdict': verdict['verdict'], 'findings': verdict.get('findings', [])}, agent='verifier')
                   return verdict
-          MEVA_EOF_588041
+          MEVA_EOF_215896
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/config.py' <<'MEVA_EOF_284237'
+          cat > '/tmp/meva-agent-src/meva/config.py' <<'MEVA_EOF_760951'
           """Configuração do agente a partir das variáveis de ambiente do workflow."""
           from __future__ import annotations
 
@@ -1297,9 +1297,9 @@ jobs:
                   for k in (*KEY_ENV.values(), *SEARCH_ENV.values(), 'GH_TOKEN'):
                       os.environ.pop(k, None)
               return cfg
-          MEVA_EOF_284237
+          MEVA_EOF_760951
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/context.py' <<'MEVA_EOF_888076'
+          cat > '/tmp/meva-agent-src/meva/context.py' <<'MEVA_EOF_955510'
           """Gerenciamento de contexto: limites por resultado, limpeza de resultados antigos e resumo automático.
 
           Substitui o `compact_messages` da V18, que só cortava texto por caracteres e perdia o histórico.
@@ -1448,9 +1448,9 @@ jobs:
                   first_blocks = [{'type': 'text', 'text': first['content']}] if isinstance(first['content'], str) else list(first['content'])
                   merged = {'role': 'user', 'content': first_blocks + [{'type': 'text', 'text': '[RESUMO DO TRABALHO ATÉ AQUI — contexto compactado]\n' + summary}]}
                   return [merged] + recent
-          MEVA_EOF_888076
+          MEVA_EOF_955510
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/evals.py' <<'MEVA_EOF_18511'
+          cat > '/tmp/meva-agent-src/meva/evals.py' <<'MEVA_EOF_173159'
           """Avaliação do agente: tarefas pequenas e verificáveis, com projetos de fixture e checagem objetiva do resultado.
 
           Uso no workflow: mode=eval (usa as chaves reais). Cada tarefa roda o pipeline completo (`run`) num projeto descartável.
@@ -1594,14 +1594,14 @@ jobs:
               log('MEVA_EVAL_END')
               atomic_json(cfg.root / 'meva-data' / 'eval' / 'last.json', {'passed': passed, 'ran': len(ran), 'results': results})
               return 0
-          MEVA_EOF_18511
+          MEVA_EOF_173159
 
-      - name: Materializar agente embutido (meva/ 2/5)
+      - name: Materializar agente embutido (meva/ 2/6)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/github_api.py' <<'MEVA_EOF_731076'
+          cat > '/tmp/meva-agent-src/meva/github_api.py' <<'MEVA_EOF_389428'
           """Cliente mínimo da API do GitHub (retry com backoff apenas para falhas transitórias de GET)."""
           from __future__ import annotations
 
@@ -1720,9 +1720,9 @@ jobs:
                                   raise RuntimeError('Release acima de 1,8 GiB.')
                               f.write(block)
                   return n
-          MEVA_EOF_731076
+          MEVA_EOF_389428
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/gitrepo.py' <<'MEVA_EOF_905092'
+          cat > '/tmp/meva-agent-src/meva/gitrepo.py' <<'MEVA_EOF_207910'
           """Repositório git interno do workspace: baseline, commit por etapa, diff e log reais.
 
           O `.git` fica dentro do projeto importado, mas nunca é exportado (DENY_DIRS) nem acessível
@@ -1886,9 +1886,9 @@ jobs:
                   if not self.enabled:
                       return 'git indisponível: ' + self.reason
                   return self._out('log', '--oneline', '--no-decorate', f'-n{max(1, min(200, n))}')
-          MEVA_EOF_905092
+          MEVA_EOF_207910
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/intents.py' <<'MEVA_EOF_386865'
+          cat > '/tmp/meva-agent-src/meva/intents.py' <<'MEVA_EOF_36549'
           """Detecção de intenção do usuário (compilar / testar).
 
           Corrige o bug da V18, em que o regex `\\b(build|make)\\b` casava com "make sure…" e forçava
@@ -1949,9 +1949,9 @@ jobs:
           def is_approval(text: str) -> bool:
               t = (text or '').strip()
               return len(t) <= 60 and bool(_APPROVE.match(t))
-          MEVA_EOF_386865
+          MEVA_EOF_36549
           mkdir -p '/tmp/meva-agent-src/meva/plugins'
-          cat > '/tmp/meva-agent-src/meva/plugins/__init__.py' <<'MEVA_EOF_170021'
+          cat > '/tmp/meva-agent-src/meva/plugins/__init__.py' <<'MEVA_EOF_241212'
           """Plugins opcionais de domínio. Só ativam quando o projeto/tarefa pertence ao domínio."""
           from __future__ import annotations
 
@@ -1980,9 +1980,9 @@ jobs:
           def active_plugins(names, user_text: str) -> list:
               names = set(names)
               return [p for p in REGISTRY if p.detect(names, user_text)]
-          MEVA_EOF_170021
+          MEVA_EOF_241212
           mkdir -p '/tmp/meva-agent-src/meva/plugins'
-          cat > '/tmp/meva-agent-src/meva/plugins/xwt.py' <<'MEVA_EOF_452806'
+          cat > '/tmp/meva-agent-src/meva/plugins/xwt.py' <<'MEVA_EOF_883085'
           """Plugin XWT/Xbox 360: auditoria estática de ELF PowerPC big-endian, rootfs CPIO e Buildroot.
 
           Antes rodava em TODO pacote, mesmo fora do domínio. Agora só ativa quando há artefatos Xenon no
@@ -2182,9 +2182,9 @@ jobs:
                       return []
                   return ['Validação XWT: não há evidência suficiente de `xenon.elf` ELF32 PowerPC big-endian e `rootfs.cpio.gz` íntegro com '
                           'estrutura/init reconhecido (ou o build não passou depois da última edição). O pacote não será declarado compilação XWT concluída.']
-          MEVA_EOF_452806
+          MEVA_EOF_883085
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/project_io.py' <<'MEVA_EOF_580002'
+          cat > '/tmp/meva-agent-src/meva/project_io.py' <<'MEVA_EOF_896215'
           """Importação do projeto: upload por blocos Git verificados, ZIP seguro e retomada via Release."""
           from __future__ import annotations
 
@@ -2483,9 +2483,9 @@ jobs:
                   if n != int(asset.get('size', -1)) or not zipfile.is_zipfile(archive):
                       raise RuntimeError('ZIP anterior incompleto/inválido.')
                   self.zip_safe_extract(archive, self.cfg.project, strip_output=True)
-          MEVA_EOF_580002
+          MEVA_EOF_896215
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/prompts.py' <<'MEVA_EOF_721065'
+          cat > '/tmp/meva-agent-src/meva/prompts.py' <<'MEVA_EOF_654402'
           """Prompts do agente principal, dos subagentes e do verificador independente."""
           from __future__ import annotations
 
@@ -2576,14 +2576,14 @@ jobs:
               '4) Como será validado (sintaxe, build, testes) e o que NÃO poderá ser verificado; 5) O que você NÃO vai fazer. '
               'Não edite nada e não finja que já fez. Termine com: "Responda aprovar para executar, ou descreva os ajustes."'
           )
-          MEVA_EOF_721065
+          MEVA_EOF_654402
 
-      - name: Materializar agente embutido (meva/ 3/5)
+      - name: Materializar agente embutido (meva/ 3/6)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/providers.py' <<'MEVA_EOF_167896'
+          cat > '/tmp/meva-agent-src/meva/providers.py' <<'MEVA_EOF_440416'
           """Provedores de IA com tool calling NATIVO, prompt caching e validação de modelos.
 
           Formato canônico de mensagens (igual ao da Anthropic): cada mensagem é
@@ -3039,9 +3039,9 @@ jobs:
                               raise RuntimeError('Falha no provedor ' + name + ': ' + msg)
                           log('Fallback AUTO por erro transitório em ' + name + '; nenhuma repetição do mesmo POST.')
                           self.idx += 1
-          MEVA_EOF_167896
+          MEVA_EOF_440416
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/repomap.py' <<'MEVA_EOF_647260'
+          cat > '/tmp/meva-agent-src/meva/repomap.py' <<'MEVA_EOF_857128'
           """Mapa do repositório: símbolos por arquivo (sem executar código), para orientar projetos grandes."""
           from __future__ import annotations
 
@@ -3119,9 +3119,9 @@ jobs:
                   if len(files) < max_files:
                       files.append({'path': n, 'symbols': syms[:max_symbols], 'more': max(0, len(syms) - max_symbols)})
               return {'files_with_symbols': total, 'shown': len(files), 'truncated': total > len(files), 'map': files}
-          MEVA_EOF_647260
+          MEVA_EOF_857128
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/report.py' <<'MEVA_EOF_726649'
+          cat > '/tmp/meva-agent-src/meva/report.py' <<'MEVA_EOF_85236'
           """Relatório, manifesto e pacote ZIP verificado (com backups originais para rollback)."""
           from __future__ import annotations
 
@@ -3276,9 +3276,9 @@ jobs:
                       h.update(b)
               return {'size': out.stat().st_size, 'changes': len(changes), 'files': len(files), 'sha256': h.hexdigest(),
                       'plugin_checks': sum(len(a.get('checks', [])) for a in audits.values()), 'archive_verified': True}
-          MEVA_EOF_726649
+          MEVA_EOF_85236
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/sandbox.py' <<'MEVA_EOF_101369'
+          cat > '/tmp/meva-agent-src/meva/sandbox.py' <<'MEVA_EOF_71071'
           """Shell real dentro de um sandbox bubblewrap.
 
           Contrato de segurança (falha fechada: se o sandbox não funcionar, NADA é executado):
@@ -3432,9 +3432,9 @@ jobs:
                   if network is False and self.cfg.sandbox_network is False:
                       result['network_note'] = 'rede desligada no sandbox'
                   return result
-          MEVA_EOF_101369
+          MEVA_EOF_71071
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/session.py' <<'MEVA_EOF_609770'
+          cat > '/tmp/meva-agent-src/meva/session.py' <<'MEVA_EOF_634334'
           """Estado compartilhado de uma execução do agente (auditoria, evidências, leituras, plano)."""
           from __future__ import annotations
 
@@ -3587,14 +3587,14 @@ jobs:
               if isinstance(v.get('output'), str):
                   out['output_tail'] = redact(v['output'][-1000:])
               return out
-          MEVA_EOF_609770
+          MEVA_EOF_634334
 
-      - name: Materializar agente embutido (meva/ 4/5)
+      - name: Materializar agente embutido (meva/ 4/6)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/tools.py' <<'MEVA_EOF_150150'
+          cat > '/tmp/meva-agent-src/meva/tools.py' <<'MEVA_EOF_872748'
           """Ferramentas do agente (schemas JSON nativos + implementações).
 
           Regras de projeto:
@@ -4512,9 +4512,9 @@ jobs:
                                   'findings': [{'severity': f.get('severity', 'minor'), 'file': f.get('file', ''), 'issue': str(f.get('issue', ''))[:800]}
                                                for f in findings if isinstance(f, dict)][:30]}
                   return {'ok': True, 'recorded': True}
-          MEVA_EOF_150150
+          MEVA_EOF_872748
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/util.py' <<'MEVA_EOF_506597'
+          cat > '/tmp/meva-agent-src/meva/util.py' <<'MEVA_EOF_423342'
           """Utilitários compartilhados: limites, redação de segredos, caminhos seguros, hashes."""
           from __future__ import annotations
 
@@ -4680,14 +4680,14 @@ jobs:
                   return {'ok': False, 'timeout': True, 'output': (a + '\n' + b + '\nTIMEOUT')[-limit:]}
               except Exception as e:  # noqa: BLE001
                   return {'ok': False, 'error': redact(e)}
-          MEVA_EOF_506597
+          MEVA_EOF_423342
 
-      - name: Materializar agente embutido (meva/ 5/5)
+      - name: Materializar agente embutido (meva/ 5/6)
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/validate.py' <<'MEVA_EOF_781919'
+          cat > '/tmp/meva-agent-src/meva/validate.py' <<'MEVA_EOF_749514'
           """Validação sintática/estrutural, dependências, toolchain e detecção de build/test."""
           from __future__ import annotations
 
@@ -4912,9 +4912,9 @@ jobs:
               elif code == 5 and re.search(r'no tests ran|collected 0 items', out, re.I):
                   result.update({'ok': None, 'status': 'NOT_RUN', 'reason': 'pytest não coletou nenhum teste.'})
               return result
-          MEVA_EOF_781919
+          MEVA_EOF_749514
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/video.py' <<'MEVA_EOF_147093'
+          cat > '/tmp/meva-agent-src/meva/video.py' <<'MEVA_EOF_210019'
           """Geração de vídeo pela NVIDIA Cosmos 3 Nano — mecanismo INDEPENDENTE do LLM (provedores de chat não são tocados).
 
           Fonte dos limites: documentação oficial (build.nvidia.com/nvidia/cosmos3-nano: apireference e modelcard).
@@ -4945,6 +4945,7 @@ jobs:
           import subprocess
           import time
           import urllib.error
+          import urllib.parse
           import urllib.request
           from dataclasses import dataclass, field
           from pathlib import Path
@@ -4956,6 +4957,11 @@ jobs:
           ALT_ENDPOINTS = ('https://ai.api.nvidia.com/v1/genai/nvidia/cosmos3-nano',)  # palpite (padrão antigo da NVIDIA): só é SONDADO no diagnóstico
           CATALOGS = ('https://integrate.api.nvidia.com/v1/models', 'https://ai.api.nvidia.com/v1/models')
           MODES = ('text2video', 'image2video')
+          P1_MODEL = 'nvidia/cosmos-predict1-7b'
+          P1_ENDPOINT = 'https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos-predict1-7b'
+          P1_STATUS = 'https://api.nvcf.nvidia.com/v2/nvcf/pexec/status/'
+          P1_PROMPT_MAX = 9500
+          P1_ZIP_MAX = 150_000_000
           PROMPT_MAX = 20000
           MAX_B64_CHARS = 150 * 1024 * 1024
           MAX_MP4_BYTES = 100 * 1024 * 1024  # limite do GitHub por arquivo; acima disso o resultado não poderia ser persistido
@@ -5475,6 +5481,182 @@ jobs:
               return VideoResult(vid, 'done', mpath, rec)
 
 
+          class _NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *a, **k):
+                  return None
+
+
+          def poll_get(url: str, headers: dict, timeout: int):
+              """GET que NÃO segue redirecionamento (o 302 do NVCF traz o link de download no header Location)."""
+              req = urllib.request.Request(url, method='GET', headers=headers)
+              try:
+                  with urllib.request.build_opener(_NoRedirect).open(req, timeout=timeout) as r:
+                      return r.status, dict(r.headers), r.read(2_000_000)
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers or {}), e.read(20000)
+              except (urllib.error.URLError, TimeoutError, ConnectionError, socket.timeout) as e:
+                  raise TransportTimeout(redact(e))
+
+
+          def download(url: str, timeout: int = 300):
+              """Baixa o resultado SEM enviar a chave da NVIDIA (o link é pré-assinado e de outro domínio)."""
+              req = urllib.request.Request(url, method='GET', headers={'User-Agent': 'MEVA-CODE-V19'})
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      data = r.read(P1_ZIP_MAX + 1)
+                      return r.status, dict(r.headers), data
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers or {}), e.read(20000)
+              except (urllib.error.URLError, TimeoutError, ConnectionError, socket.timeout) as e:
+                  raise TransportTimeout(redact(e))
+
+
+          def _extract_mp4(blob: bytes) -> bytes:
+              """O NVCF entrega um .zip; aceita também um MP4 cru. Extrai só um membro .mp4 (nunca usa o nome do membro como caminho)."""
+              if blob[4:8] == b'ftyp':
+                  return blob
+              import io, zipfile
+              try:
+                  zf = zipfile.ZipFile(io.BytesIO(blob))
+              except zipfile.BadZipFile:
+                  raise ValueError('o resultado baixado não é um ZIP nem um MP4')
+              mp4s = [i for i in zf.infolist() if i.filename.lower().endswith('.mp4') and not i.is_dir()]
+              if not mp4s:
+                  raise ValueError('o ZIP não contém nenhum .mp4 (arquivos: %s)' % ', '.join(i.filename[:40] for i in zf.infolist()[:6]))
+              m = max(mp4s, key=lambda i: i.file_size)
+              if m.file_size > P1_ZIP_MAX:
+                  raise ValueError('MP4 do ZIP grande demais')
+              with zf.open(m) as f:
+                  data = f.read(P1_ZIP_MAX + 1)
+              if len(data) != m.file_size:
+                  raise ValueError('MP4 do ZIP truncado')
+              return data
+
+
+          def generate_predict1(raw_params: dict, api_key: str, out_dir: Path, vid: str, *, timeout: int = 1500, transport=None, get=None,
+                                fetch=None, sleep=time.sleep, poll_every: float = 6.0) -> VideoResult:
+              """NVIDIA Cosmos Predict 1 7B (text2world): chamada assíncrona NVCF (POST -> 202 -> poll -> 302 -> ZIP com MP4).
+              Segue o exemplo da página do modelo. O sucesso só é declarado após validar o MP4 (mesmas etapas do Cosmos 3 Nano)."""
+              transport, get, fetch = transport or default_transport, get or poll_get, fetch or download
+              out_dir = Path(out_dir)
+              out_dir.mkdir(parents=True, exist_ok=True)
+              jpath, mpath = out_dir / f'{vid}.json', out_dir / f'{vid}.mp4'
+              rec: dict = {'id': vid, 'model': P1_MODEL, 'endpoint': P1_ENDPOINT, 'status': 'validating_params', 'created_at': now_iso(), 'events': []}
+
+              def stage(status: str, **kw):
+                  rec['status'] = status
+                  rec.update(kw)
+                  rec['events'].append({'at': now_iso(), 'status': status})
+                  rec['updated_at'] = now_iso()
+                  atomic_json(jpath, rec)
+
+              def fail(status: str, kind: str, message: str, **kw) -> VideoResult:
+                  rec['error'] = {'kind': kind, 'message': redact(message, 800), **kw}
+                  rec['success'] = False
+                  stage(status)
+                  log(f'VIDEO {status.upper()} [{kind}]: {redact(message, 300)}')
+                  return VideoResult(vid, status, None, rec)
+
+              stage('validating_params')
+              prompt = raw_params.get('prompt') if isinstance(raw_params, dict) else None
+              if not isinstance(prompt, str) or not prompt.strip():
+                  return fail('failed', 'invalid_params', 'Parâmetros inválidos: prompt obrigatório.')
+              if len(prompt) > P1_PROMPT_MAX:
+                  return fail('failed', 'invalid_params', f'Parâmetros inválidos: prompt acima de {P1_PROMPT_MAX} caracteres.')
+              if not api_key:
+                  return fail('failed', 'missing_key', 'NVIDIA_API_KEY não está configurada nos GitHub Secrets.')
+              prompt = prompt.strip()
+              rec['request'] = {'model_mode': 'text2video', 'prompt': prompt, 'resolution': '1280x704 (fixo do modelo)', 'fps': 24, 'num_frames': 121,
+                                'note': 'O Predict 1 7B gera um clipe fixo de ~5 s; resolução, fps, frames e seed não são configuráveis.'}
+              esc = prompt.replace('\\', '\\\\').replace('"', '\\"')
+              body = {'inputs': [{'name': 'command', 'shape': [1], 'datatype': 'BYTES', 'data': ['text2world --prompt="%s"' % esc]}],
+                      'outputs': [{'name': 'status', 'datatype': 'BYTES', 'shape': [1]}]}
+              headers = {'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': 'MEVA-CODE-V19'}
+              stage('submitted', submitted_at=now_iso())
+              t0 = time.time()
+              try:
+                  status, rh, rb = transport(P1_ENDPOINT, headers, json.dumps(body).encode('utf-8'), 120)
+              except TransportTimeout as e:
+                  return fail('unknown', 'timeout_or_network', 'Sem resposta (%s). A geração pode ter sido iniciada; não foi repetida. Confira o consumo antes de reenviar.' % e)
+              except ValueError as e:
+                  return fail('failed', 'response_too_large', str(e))
+              rid = next((v for k, v in rh.items() if k.lower() == 'nvcf-reqid'), None)
+              rec['http'] = {'status': status, 'elapsed_s': round(time.time() - t0, 1), 'request_id': rid, 'response_bytes': len(rb)}
+              if status not in (200, 202):
+                  rec['http']['body_preview'] = redact(rb[:300].decode('utf-8', 'replace'), 300)
+                  err = classify_error(status, rb)
+                  return fail('failed', err['kind'], err['message'], http_status=status, type=err['type'], code=err['code'])
+              blob = None
+              if status == 200:
+                  blob = rb
+              else:
+                  if not rid:
+                      return fail('unknown', 'no_request_id', 'HTTP 202 sem NVCF-REQID: não dá para acompanhar a geração.')
+                  stage('generating', request_id=rid)
+                  sh = {'Authorization': 'Bearer ' + api_key, 'Accept': 'application/json', 'User-Agent': 'MEVA-CODE-V19'}
+                  loc = None
+                  while True:
+                      if time.time() - t0 > timeout:
+                          return fail('unknown', 'poll_timeout', f'A geração não terminou em {timeout}s (request-id {rid}). Pode ainda estar processando na NVIDIA.')
+                      try:
+                          ps, ph, pb = get(P1_STATUS + urllib.parse.quote(rid, safe=''), sh, 60)
+                      except TransportTimeout:
+                          sleep(poll_every)
+                          continue
+                      if ps == 202:
+                          sleep(poll_every)
+                          continue
+                      if ps == 302:
+                          loc = next((v for k, v in ph.items() if k.lower() == 'location'), None)
+                          break
+                      if ps == 200:
+                          blob = pb
+                          break
+                      rec['http']['body_preview'] = redact(pb[:300].decode('utf-8', 'replace'), 300)
+                      err = classify_error(ps, pb)
+                      return fail('failed', err['kind'], 'Falha ao acompanhar a geração: ' + err['message'], http_status=ps)
+                  if loc:
+                      if not loc.lower().startswith('https://'):
+                          return fail('failed', 'bad_response', 'Link de download não é https.')
+                      stage('downloading')
+                      try:
+                          ds, _, blob = fetch(loc, 300)
+                      except TransportTimeout as e:
+                          return fail('unknown', 'download_failed', f'Geração concluída, mas o download falhou ({e}). request-id {rid}.')
+                      if ds != 200:
+                          return fail('failed', 'download_failed', f'Download do resultado retornou HTTP {ds}.')
+              stage('received')
+              try:
+                  raw = _extract_mp4(blob)
+              except ValueError as e:
+                  return fail('failed', 'no_video', 'Nenhum vídeo no resultado: ' + str(e))
+              tmp = out_dir / f'{vid}.partial'
+              tmp.write_bytes(raw)
+              stage('validating')
+              insp = inspect_mp4(tmp.read_bytes())
+              if not insp['ok']:
+                  tmp.unlink(missing_ok=True)
+                  rec['validation'] = insp
+                  return fail('failed', 'invalid_mp4', 'O arquivo recebido NÃO é um MP4 válido: ' + '; '.join(insp['errors'][:4]), bytes=len(raw), sha256=insp['sha256'])
+              dec = decode_check(tmp)
+              insp['decode'] = dec
+              if dec['status'] == 'FAIL':
+                  tmp.unlink(missing_ok=True)
+                  rec['validation'] = insp
+                  return fail('failed', 'undecodable_mp4', 'O MP4 tem estrutura válida mas não decodifica: ' + dec['detail'], bytes=len(raw), sha256=insp['sha256'])
+              warns = list(insp.get('warnings', []))
+              if dec['status'] == 'NOT_RUN':
+                  warns.append(dec['detail'])
+              insp['warnings'] = warns
+              tmp.replace(mpath)
+              rec['validation'] = insp
+              rec['file'] = mpath.name
+              rec.update({'bytes': insp['bytes'], 'sha256': insp['sha256'], 'success': True})
+              stage('done', completed_at=now_iso())
+              log(f'VIDEO OK: {mpath.name} {insp["width"]}x{insp["height"]} {insp["frames"]} frames {insp["duration_s"]}s sha256={insp["sha256"][:12]}')
+              return VideoResult(vid, 'done', mpath, rec)
+
+
           def default_get(url: str, headers: dict, timeout: int):
               req = urllib.request.Request(url, method='GET', headers=headers)
               try:
@@ -5515,7 +5697,7 @@ jobs:
                   return VideoResult(vid, 'failed', None, rec)
               headers = {'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': 'MEVA-CODE-V19'}
               probes = []
-              for url in dict.fromkeys([endpoint or ENDPOINT, ENDPOINT, *ALT_ENDPOINTS]):
+              for url in dict.fromkeys([endpoint or ENDPOINT, ENDPOINT, P1_ENDPOINT, *ALT_ENDPOINTS]):
                   p = {'url': url, 'method': 'POST', 'documented': url == ENDPOINT}
                   try:
                       st, hd, body = transport(url, headers, b'{}', 60)
@@ -5535,6 +5717,7 @@ jobs:
                               ids = [x.get('id', '') for x in json.loads(body.decode('utf-8')).get('data', []) if isinstance(x, dict)]
                               m['total_models'] = len(ids)
                               m['cosmos_models'] = [i for i in ids if 'cosmos' in i.lower()][:30]
+                              m['all_models'] = sorted(ids)[:120]
                           except ValueError:
                               m['note'] = 'resposta não é JSON'
                       else:
@@ -5556,7 +5739,10 @@ jobs:
                                 + 'Confira na página do modelo se o Free endpoint está disponível para a sua conta/região.')
               else:
                   conclusion = 'Resultado inconclusivo; veja as sondagens.'
-              rec.update({'status': 'diagnosed', 'probes': probes, 'catalogs': models, 'conclusion': conclusion, 'documented_route_ok': st in (400, 401, 403, 422, 429),
+              p1 = next((p for p in probes if p['url'] == P1_ENDPOINT), {})
+              p1_ok = p1.get('http_status') in (400, 401, 403, 422, 429, 202, 200)
+              conclusion += (' | Cosmos Predict 1 7B (text2world, alternativa): ' + ('rota EXISTE para esta chave — selecione-o no formulário.' if p1_ok else f'rota respondeu {p1.get("http_status")}.'))
+              rec.update({'predict1_route_ok': p1_ok, 'status': 'diagnosed', 'probes': probes, 'catalogs': models, 'conclusion': conclusion, 'documented_route_ok': st in (400, 401, 403, 422, 429),
                           'completed_at': now_iso()})
               atomic_json(jpath, rec)
               log('VIDEO DIAGNÓSTICO: ' + conclusion)
@@ -5588,6 +5774,8 @@ jobs:
                   res = generate_video({'__invalid__': 1}, '', out_dir, vid)
                   res.record['error'] = {'kind': 'bad_endpoint', 'message': raw['__endpoint_error__']}
                   atomic_json(out_dir / f'{vid}.json', res.record)
+              elif isinstance(raw, dict) and raw.get('model') == P1_MODEL:
+                  res = generate_predict1(raw, cfg.api_keys.get('NVIDIA_API_KEY', ''), out_dir, vid, timeout=int(os.environ.get('MEVA_VIDEO_TIMEOUT', '1500') or 1500), transport=transport)
               elif raw is None:
                   res = generate_video({'__invalid__': 1}, '', out_dir, vid)
                   res.record['error']['message'] = 'A mensagem do modo video precisa ser um JSON com os parâmetros.'
@@ -5602,9 +5790,14 @@ jobs:
                       f.write(f'status={"completed" if res.ok else "failed"}\nvideo_id={vid}\n')
               log(f'MEVA_VIDEO_STATUS={res.status} ID={vid}')
               return 0 if res.ok else 1
-          MEVA_EOF_147093
+          MEVA_EOF_210019
+
+      - name: Materializar agente embutido (meva/ 6/6)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/meva'
-          cat > '/tmp/meva-agent-src/meva/workspace.py' <<'MEVA_EOF_554689'
+          cat > '/tmp/meva-agent-src/meva/workspace.py' <<'MEVA_EOF_370090'
           """Workspace do projeto: inventário, caminhos seguros, snapshot SHA-256, backups e rollback."""
           from __future__ import annotations
 
@@ -5855,7 +6048,7 @@ jobs:
                   'workspace_disk_total_bytes': disk.total, 'runner_os': os.getenv('RUNNER_OS', 'unknown'),
                   'runner_arch': os.getenv('RUNNER_ARCH', 'unknown'),
               }
-          MEVA_EOF_554689
+          MEVA_EOF_370090
 
       - name: Materializar testes embutidos (1/2)
         if: ${{ inputs.mode == 'self_test' }}
@@ -5863,11 +6056,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/__init__.py' <<'MEVA_EOF_476718'
+          cat > '/tmp/meva-agent-src/tests/__init__.py' <<'MEVA_EOF_614126'
 
-          MEVA_EOF_476718
+          MEVA_EOF_614126
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/helpers.py' <<'MEVA_EOF_535692'
+          cat > '/tmp/meva-agent-src/tests/helpers.py' <<'MEVA_EOF_964772'
           """Utilitários de teste: ambiente temporário, provedor roteirizado e sandbox LOCAL (apenas para testes)."""
           from __future__ import annotations
 
@@ -5970,9 +6163,9 @@ jobs:
 
               def p(self, rel):
                   return self.cfg.project / rel
-          MEVA_EOF_535692
+          MEVA_EOF_964772
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_agent.py' <<'MEVA_EOF_551050'
+          cat > '/tmp/meva-agent-src/tests/test_agent.py' <<'MEVA_EOF_725007'
           import json
           import unittest
 
@@ -6176,9 +6369,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_551050
+          MEVA_EOF_725007
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_basics.py' <<'MEVA_EOF_404053'
+          cat > '/tmp/meva-agent-src/tests/test_basics.py' <<'MEVA_EOF_280282'
           import unittest
 
           from meva.intents import compile_requested, tests_requested
@@ -6230,9 +6423,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_404053
+          MEVA_EOF_280282
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_io_plugins_sandbox.py' <<'MEVA_EOF_297304'
+          cat > '/tmp/meva-agent-src/tests/test_io_plugins_sandbox.py' <<'MEVA_EOF_818899'
           import gzip
           import io
           import os
@@ -6426,9 +6619,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_297304
+          MEVA_EOF_818899
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_main.py' <<'MEVA_EOF_602147'
+          cat > '/tmp/meva-agent-src/tests/test_main.py' <<'MEVA_EOF_266510'
           import json
           import tempfile
           import unittest
@@ -6561,9 +6754,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_602147
+          MEVA_EOF_266510
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_nvidia.py' <<'MEVA_EOF_445610'
+          cat > '/tmp/meva-agent-src/tests/test_nvidia.py' <<'MEVA_EOF_199677'
           import unittest
           from unittest import mock
 
@@ -6689,9 +6882,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_445610
+          MEVA_EOF_199677
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_providers_context.py' <<'MEVA_EOF_639163'
+          cat > '/tmp/meva-agent-src/tests/test_providers_context.py' <<'MEVA_EOF_643308'
           import json
           import unittest
           import urllib.error
@@ -6954,9 +7147,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_639163
+          MEVA_EOF_643308
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_repomap.py' <<'MEVA_EOF_414005'
+          cat > '/tmp/meva-agent-src/tests/test_repomap.py' <<'MEVA_EOF_936556'
           import tempfile
           import unittest
           from pathlib import Path
@@ -6980,9 +7173,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_414005
+          MEVA_EOF_936556
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_review_regressions.py' <<'MEVA_EOF_439663'
+          cat > '/tmp/meva-agent-src/tests/test_review_regressions.py' <<'MEVA_EOF_120309'
           """Regressões dos achados da revisão independente."""
           import tempfile
           import unittest
@@ -7034,7 +7227,7 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_439663
+          MEVA_EOF_120309
 
       - name: Materializar testes embutidos (2/2)
         if: ${{ inputs.mode == 'self_test' }}
@@ -7042,7 +7235,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_tools.py' <<'MEVA_EOF_961729'
+          cat > '/tmp/meva-agent-src/tests/test_tools.py' <<'MEVA_EOF_844378'
           import base64
           import json
           import unittest
@@ -7267,9 +7460,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_961729
+          MEVA_EOF_844378
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_v19.py' <<'MEVA_EOF_604407'
+          cat > '/tmp/meva-agent-src/tests/test_v19.py' <<'MEVA_EOF_483170'
           import json
           import tempfile
           import unittest
@@ -7448,9 +7641,9 @@ jobs:
 
           if __name__ == '__main__':
               unittest.main()
-          MEVA_EOF_604407
+          MEVA_EOF_483170
           mkdir -p '/tmp/meva-agent-src/tests'
-          cat > '/tmp/meva-agent-src/tests/test_video.py' <<'MEVA_EOF_369113'
+          cat > '/tmp/meva-agent-src/tests/test_video.py' <<'MEVA_EOF_150581'
           import base64
           import json
           import shutil
@@ -7768,7 +7961,74 @@ jobs:
                   self.assertFalse(r.record['documented_route_ok'])
                   self.assertIn('MEVA_VIDEO_ENDPOINT', r.record['conclusion'])
                   self.assertIsNone(r.path)
-          MEVA_EOF_369113
+
+
+          @unittest.skipUnless(HAVE_FFMPEG, 'ffmpeg ausente')
+          class Predict1(unittest.TestCase):
+              def run_p1(self, post, polls, dl=None, prompt='um robô'):
+                  import io, zipfile
+                  from meva import video as v
+                  seq = list(polls)
+                  def tr(url, h, b, t):
+                      self.body = json.loads(b)
+                      return post
+                  def gt(url, h, t):
+                      return seq.pop(0)
+                  def fe(url, t):
+                      self.fetched = url
+                      return dl if dl is not None else (200, {}, b'')
+                  with tempfile.TemporaryDirectory() as d:
+                      r = v.generate_predict1({'model': v.P1_MODEL, 'prompt': prompt}, 'k' * 20, Path(d), 'vid-0123456789abcdef',
+                                              transport=tr, get=gt, fetch=fe, sleep=lambda s: None)
+                      self.exists = (Path(d) / 'vid-0123456789abcdef.mp4').exists()
+                  return r
+
+              def zipped(self, data):
+                  import io, zipfile
+                  b = io.BytesIO()
+                  with zipfile.ZipFile(b, 'w') as z:
+                      z.writestr('out/video.mp4', data)
+                  return b.getvalue()
+
+              def test_async_success_zip(self):
+                  r = self.run_p1((202, {'NVCF-REQID': 'abc'}, b''), [(202, {}, b''), (302, {'Location': 'https://s3.example/x.zip'}, b'')],
+                                  (200, {}, self.zipped(real_mp4())))
+                  self.assertEqual(r.status, 'done')
+                  self.assertTrue(self.exists)
+                  self.assertEqual(self.fetched, 'https://s3.example/x.zip')
+                  self.assertIn('text2world --prompt="um robô"', self.body['inputs'][0]['data'][0])
+
+              def test_zip_without_mp4_is_failure(self):
+                  import io, zipfile
+                  b = io.BytesIO()
+                  with zipfile.ZipFile(b, 'w') as z:
+                      z.writestr('a.txt', 'x')
+                  r = self.run_p1((202, {'NVCF-REQID': 'abc'}, b''), [(302, {'Location': 'https://s3.example/x'}, b'')], (200, {}, b.getvalue()))
+                  self.assertEqual((r.status, r.record['error']['kind']), ('failed', 'no_video'))
+                  self.assertFalse(self.exists)
+
+              def test_fake_mp4_in_zip_rejected(self):
+                  r = self.run_p1((202, {'NVCF-REQID': 'abc'}, b''), [(302, {'Location': 'https://s3.example/x'}, b'')],
+                                  (200, {}, self.zipped(b'nao sou mp4 ' * 50)))
+                  self.assertEqual(r.status, 'failed')
+                  self.assertFalse(self.exists)
+
+              def test_404_and_no_reqid(self):
+                  r = self.run_p1((404, {}, b'404 page not found\n'), [])
+                  self.assertEqual(r.record['error']['kind'], 'route_not_found')
+                  r = self.run_p1((202, {}, b''), [])
+                  self.assertEqual(r.status, 'unknown')
+
+              def test_non_https_location_rejected(self):
+                  r = self.run_p1((202, {'NVCF-REQID': 'a'}, b''), [(302, {'Location': 'http://evil/x'}, b'')])
+                  self.assertEqual(r.record['error']['kind'], 'bad_response')
+
+              def test_prompt_quotes_escaped_and_empty_rejected(self):
+                  self.run_p1((404, {}, b''), [], prompt='diga "oi"')
+                  self.assertIn('\\"oi\\"', self.body['inputs'][0]['data'][0])
+                  r = self.run_p1((404, {}, b''), [], prompt='  ')
+                  self.assertEqual(r.record['error']['kind'], 'invalid_params')
+          MEVA_EOF_150581
 
       - name: Verificar agente embutido
         shell: bash
