@@ -1,0 +1,48 @@
+{
+  "id": "vid-b30cd58a0c084e46",
+  "model": "nvidia/cosmos3-nano",
+  "kind": "diagnose",
+  "status": "diagnosed",
+  "created_at": "2026-11-21T01:50:17Z",
+  "success": false,
+  "probes": [
+    {
+      "url": "https://ai.api.nvidia.com/v1/cosmos/nvidia/cosmos3-nano",
+      "method": "POST",
+      "documented": true,
+      "http_status": 404,
+      "verdict": "rota NÃO existe neste gateway",
+      "body_preview": "404 page not found\n",
+      "server": ""
+    },
+    {
+      "url": "https://ai.api.nvidia.com/v1/genai/nvidia/cosmos3-nano",
+      "method": "POST",
+      "documented": false,
+      "http_status": 404,
+      "verdict": "rota NÃO existe neste gateway",
+      "body_preview": "404 page not found\n",
+      "server": ""
+    }
+  ],
+  "catalogs": [
+    {
+      "url": "https://integrate.api.nvidia.com/v1/models",
+      "method": "GET",
+      "http_status": 200,
+      "total_models": 33,
+      "cosmos_models": [
+        "nvidia/cosmos-reason2-8b"
+      ]
+    },
+    {
+      "url": "https://ai.api.nvidia.com/v1/models",
+      "method": "GET",
+      "http_status": 404,
+      "body_preview": "404 page not found\n"
+    }
+  ],
+  "conclusion": "A rota documentada NÃO existe neste gateway (404). A chave enxerga modelos Cosmos no catálogo: nvidia/cosmos-reason2-8b. Confira na página do modelo se o Free endpoint está disponível para a sua conta/região.",
+  "documented_route_ok": false,
+  "completed_at": "2026-11-21T01:50:17Z"
+}
